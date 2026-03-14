@@ -1,6 +1,6 @@
 {
   "name": "@coderifts/sdk",
-  "version": "0.1.0",
+  "version": "0.7.0",
   "description": "TypeScript client for the CodeRifts API — diff, score, analyze, and govern API changes.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
