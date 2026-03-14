@@ -1,0 +1,36 @@
+{
+  "name": "@coderifts/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript client for the CodeRifts API — diff, score, analyze, and govern API changes.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test dist/**/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "coderifts",
+    "api",
+    "openapi",
+    "breaking-changes",
+    "mcp",
+    "sdk"
+  ],
+  "author": "CodeRifts <hello@coderifts.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/coderifts/sdk.git"
+  },
+  "homepage": "https://coderifts.com",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
