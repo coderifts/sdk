@@ -5,7 +5,7 @@ TypeScript client for the [CodeRifts](https://coderifts.com) API — detect brea
 ## Install
 
 ```bash
-npm install @coderifts/sdk
+npm install @coderifts/sdk@1.0.1
 ```
 
 ## Quick Start
