@@ -15,6 +15,8 @@
 
 export { CodeRifts } from './client';
 export { CodeRiftsError, ApiError, TimeoutError, RateLimitError, AuthError } from './errors';
+export { readDecision } from './decision';
+export type { ReadDecisionResult } from './decision';
 export type {
     CodeRiftsOptions,
     ApiErrorBody,
@@ -39,4 +41,20 @@ export type {
     SimulatePolicyRequest,
     SimulatePolicyResponse,
     MatchedRule,
+    Decision,
+    ExecutionAction,
+    ReceiptStatus,
+    DecisionReason,
+    NextAction,
+    DecisionReceipt,
+    DecisionEvidence,
+    DecisionResultEnvelope,
+    Artifact,
+    PreflightChangeSetContext,
+    PreflightChangeSetRequest,
+    ChangeSetArtifactFinding,
+    PreflightChangeSetResponse,
+    VerifyReceiptResponse,
+    DecisionLookupRequest,
+    DecisionLookupResponse,
 } from './types';

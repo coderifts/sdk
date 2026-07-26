@@ -128,6 +128,59 @@ const result = await client.simulatePolicy({
 // result.matched_rules: MatchedRule[]
 ```
 
+## Envelope-aware methods (v1.1.0)
+
+These return the `decision-result.v1.1` envelope with a top-level `execution_action`
+(`CONTINUE` | `CONTINUE_WITH_MONITORING` | `REQUEST_APPROVAL` | `STOP`) and a signed chain receipt.
+
+### `preflightChangeSet(request)`
+
+Preflight a multi-artifact change set in one call — one aggregated decision (strictest-wins) plus a
+bundle fingerprint, per-artifact findings, and a `decision_result` envelope. `POST /api/v1/preflight`.
+
+```typescript
+const res = await client.preflightChangeSet({
+  artifacts: [{ id: 'payments', type: 'openapi', before: oldSpec, after: newSpec }],
+  context: { operation: 'merge', environment: 'production' },
+  idempotency_key: 'pr-1234',
+});
+// res.decision, res.execution_action, res.bundle_fingerprint, res.decision_result, res.artifacts[]
+```
+
+### `verifyReceipt(token)`
+
+Verify a chain receipt's signature and integrity. **No API key required** (public endpoint).
+`POST /api/v1/verify-receipt`.
+
+```typescript
+const v = await client.verifyReceipt(receiptToken);
+// v.valid (boolean), v.status ('VERIFIED_CURRENT' | 'VERIFIED_EXPIRED' | ...), v.payload?
+```
+
+### `getDecisionDetails(request)`
+
+Look up a stored decision by `decision_id` or `fingerprint`; returns the stored envelope + meta.
+`POST /api/v1/decisions/lookup`.
+
+```typescript
+const d = await client.getDecisionDetails({ decision_id: 'dec_...' });
+// d.decision_result (DecisionResultEnvelope), d.meta
+```
+
+### `readDecision(response)`
+
+Pure helper (no network) to read a governance decision from **any** CodeRifts response, fail-closed.
+Envelope-first, then top-level `execution_action`, then a `decision`→action map, else `STOP`. Never throws.
+
+```typescript
+import { readDecision } from '@coderifts/sdk';
+
+const { executionAction, decision, envelope, receipt } = readDecision(res);
+if (executionAction === 'STOP' || executionAction === 'REQUEST_APPROVAL') {
+  // block or gate the tool call
+}
+```
+
 ## Error Handling
 
 All methods throw a typed `CodeRiftsError` on non-2xx responses:

@@ -1,7 +1,7 @@
 /**
  * @coderifts/sdk — Main client class
  */
-import type { CodeRiftsOptions, DiffRequest, DiffResponse, PreflightCheckRequest, PreflightCheckResponse, ExplainDecisionRequest, ExplainDecisionResponse, HowToUnblockRequest, HowToUnblockResponse, ScoreMcpRequest, ScoreMcpResponse, GetLedgerRequest, GetLedgerResponse, SimulatePolicyRequest, SimulatePolicyResponse } from './types';
+import type { CodeRiftsOptions, DiffRequest, DiffResponse, PreflightCheckRequest, PreflightCheckResponse, ExplainDecisionRequest, ExplainDecisionResponse, HowToUnblockRequest, HowToUnblockResponse, ScoreMcpRequest, ScoreMcpResponse, GetLedgerRequest, GetLedgerResponse, SimulatePolicyRequest, SimulatePolicyResponse, PreflightChangeSetRequest, PreflightChangeSetResponse, VerifyReceiptResponse, DecisionLookupRequest, DecisionLookupResponse } from './types';
 import { ApiError, AuthError, RateLimitError, TimeoutError } from './errors';
 const DEFAULT_BASE_URL = 'https://app.coderifts.com';
 const DEFAULT_TIMEOUT = 30_000;
@@ -209,6 +209,33 @@ export class CodeRifts {
      */
     async simulatePolicy(req: SimulatePolicyRequest): Promise<SimulatePolicyResponse> {
         return this.request<SimulatePolicyResponse>('POST', '/api/v1/policy-simulator', req);
+    }
+    // ─── 8. preflightChangeSet ─────────────────────────────────────────────
+    /**
+     * Preflight a multi-artifact change set (OpenAPI / GraphQL / gRPC / AsyncAPI / MCP manifest)
+     * in one call. Returns one aggregated ALLOW/WARN/REQUIRE_APPROVAL/BLOCK decision (strictest-wins)
+     * with per-artifact findings, a bundle fingerprint, and a decision-result.v1.1 envelope +
+     * chain receipt. POST /api/v1/preflight.
+     */
+    async preflightChangeSet(req: PreflightChangeSetRequest): Promise<PreflightChangeSetResponse> {
+        return this.request<PreflightChangeSetResponse>('POST', '/api/v1/preflight', req);
+    }
+    // ─── 9. verifyReceipt ──────────────────────────────────────────────────
+    /**
+     * Verify a CodeRifts chain receipt's signature and integrity. No API key is required — this is a
+     * public endpoint (the Authorization header is sent for consistency but ignored server-side).
+     * POST /api/v1/verify-receipt.
+     */
+    async verifyReceipt(token: string): Promise<VerifyReceiptResponse> {
+        return this.request<VerifyReceiptResponse>('POST', '/api/v1/verify-receipt', { token });
+    }
+    // ─── 10. getDecisionDetails ────────────────────────────────────────────
+    /**
+     * Look up a stored decision by decision_id or fingerprint; returns the stored
+     * decision-result.v1.1 envelope + meta. POST /api/v1/decisions/lookup.
+     */
+    async getDecisionDetails(req: DecisionLookupRequest): Promise<DecisionLookupResponse> {
+        return this.request<DecisionLookupResponse>('POST', '/api/v1/decisions/lookup', req);
     }
 }
 // ── Helpers ──────────────────────────────────────────────────────────────────

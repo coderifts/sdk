@@ -170,3 +170,148 @@ export interface SimulatePolicyResponse {
     matched_rules: MatchedRule[];
     [key: string]: unknown;
 }
+/* ── v1.1.0 — envelope-aware governance (decision-result.v1.1) ──────────────────
+ * Interfaces are closed by design. TS structural typing already lets consumers pass
+ * objects carrying ADDITIONAL fields (the app may append forward-compatible envelope
+ * fields), so a wider server payload never breaks an SDK build. */
+export type Decision = 'ALLOW' | 'WARN' | 'REQUIRE_APPROVAL' | 'BLOCK';
+export type ExecutionAction = 'CONTINUE' | 'CONTINUE_WITH_MONITORING' | 'REQUEST_APPROVAL' | 'STOP';
+export type ReceiptStatus =
+    | 'VERIFIED_CURRENT'
+    | 'VERIFIED_EXPIRED'
+    | 'VERIFIED_WRONG_AUDIENCE'
+    | 'VERIFIED_WRONG_ENVIRONMENT'
+    | 'VERIFIED_SUPERSEDED'
+    | 'VERIFIED_SCOPE_MISMATCH'
+    | 'UNKNOWN_KEY'
+    | 'RETIRED_KEY_VALID_AT_ISSUE'
+    | 'INVALID_SIGNATURE'
+    | 'MALFORMED'
+    | 'UNSUPPORTED_VERSION'
+    | 'REGISTRY_UNREACHABLE';
+export interface DecisionReason {
+    code: string;
+    message: string;
+}
+export interface NextAction {
+    type: string;
+    instruction: string;
+    target: string | null;
+    required: boolean;
+    precondition: string | null;
+}
+export interface DecisionReceipt {
+    token: string;
+    format_version: string;
+    key_id: string;
+    issued_at: string;
+    expires_at?: string;
+}
+export interface DecisionEvidence {
+    type: string;
+    source: string;
+    finding: string;
+    severity: string;
+}
+export interface DecisionResultEnvelope {
+    spec_version: string;
+    decision: Decision;
+    safe_for_agent: boolean;
+    execution_action: ExecutionAction;
+    decision_id: string;
+    correlation_id: string;
+    evaluated_at: string;
+    expires_at: string;
+    summary: string;
+    blocking_reasons: DecisionReason[];
+    warnings: DecisionReason[];
+    required_action: string | null;
+    next_actions: NextAction[];
+    fingerprint: string;
+    input_fingerprint: string;
+    decision_body_hash: string | null;
+    receipt: DecisionReceipt;
+    report_url: string | null;
+    evidence_quality: string;
+    confidence: number | null;
+    calibration_version?: string | null;
+    evidence: DecisionEvidence[];
+    analysis_complete: boolean;
+    degraded_reasons?: DecisionReason[];
+    /** v1.1 additive fields (null / absent when not covered on a given path). */
+    receipt_type?: string | null;
+    operation?: string | null;
+    environment?: string | null;
+    artifact_digest?: string | null;
+    decision_spec_version?: string | null;
+    policy_hash?: string | null;
+    ruleset_hash?: string | null;
+    audience?: string | null;
+    authorization_scope_hash?: string | null;
+    engine_build_id?: string | null;
+    deployment_id?: string | null;
+}
+export interface Artifact {
+    id: string;
+    type: 'openapi' | 'graphql' | 'grpc' | 'asyncapi' | 'mcp_manifest';
+    before: string;
+    after: string;
+}
+export interface PreflightChangeSetContext {
+    operation?: string;
+    environment?: string;
+    repository?: string;
+    branch?: string;
+    pull_request?: string | number;
+    policy_profile?: string;
+}
+export interface PreflightChangeSetRequest {
+    artifacts: Artifact[];
+    context?: PreflightChangeSetContext;
+    previous_receipt?: string;
+    idempotency_key?: string;
+}
+export interface ChangeSetArtifactFinding {
+    id: string;
+    type: string;
+    status: string;
+    decision: Decision;
+    risk_score: number;
+    breaking_changes: number;
+    patterns: string[];
+    safe_for_agent: boolean;
+    error?: string;
+    reason?: string;
+}
+export interface PreflightChangeSetResponse {
+    decision: Decision;
+    safe_for_agent: boolean;
+    execution_action: ExecutionAction;
+    risk_score: number;
+    breaking_changes: number;
+    patterns: string[];
+    bundle_fingerprint: string;
+    verdict_fingerprint: string;
+    chain_status?: string;
+    chain_receipt?: string;
+    artifacts: ChangeSetArtifactFinding[];
+    evidence: DecisionEvidence[];
+    decision_result?: DecisionResultEnvelope;
+    correlation_id: string;
+    meta: Record<string, unknown>;
+}
+export interface VerifyReceiptResponse {
+    valid: boolean;
+    reason: string | null;
+    status: ReceiptStatus;
+    payload?: Record<string, unknown>;
+}
+export interface DecisionLookupRequest {
+    decision_id?: string;
+    fingerprint?: string;
+}
+export interface DecisionLookupResponse {
+    decision: Decision;
+    decision_result: DecisionResultEnvelope;
+    meta: Record<string, unknown>;
+}
