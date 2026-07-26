@@ -1,36 +1,42 @@
 /**
- * @coderifts/sdk
+ * @coderifts/sdk — Agent Governance SDK
  *
- * TypeScript client for the CodeRifts API.
+ * TypeScript/JavaScript SDK for the CodeRifts API.
+ * Validates API changes before tool invocations.
  *
  * @example
  * ```ts
  * import { CodeRifts } from '@coderifts/sdk';
  *
  * const client = new CodeRifts({ apiKey: 'cr_live_...' });
- * const result = await client.diff({ old_spec: oldYaml, new_spec: newYaml });
+ * const result = await client.diff({ before: oldSpec, after: newSpec });
  * ```
  */
 
 export { CodeRifts } from './client';
-export { CodeRiftsError, ApiError, AuthError, RateLimitError, TimeoutError } from './errors';
+export { CodeRiftsError, ApiError, TimeoutError, RateLimitError, AuthError } from './errors';
 export type {
-  CodeRiftsOptions,
-  DiffRequest,
-  DiffResponse,
-  BreakingChange,
-  ReadinessRequest,
-  ReadinessResponse,
-  ReadinessSignal,
-  McpScoreResponse,
-  StabilityRequest,
-  StabilityResponse,
-  StabilitySummary,
-  TrendPoint,
-  PatternEntry,
-  OmegaDistribution,
-  PreflightRequest,
-  PreflightResponse,
-  PreflightTool,
-  ApiErrorBody,
+    CodeRiftsOptions,
+    ApiErrorBody,
+    PreflightCheckRequest,
+    PreflightCheckResponse,
+    ReflexTrigger,
+    AffectedTool,
+    DiffRequest,
+    DiffResponse,
+    BreakingChange,
+    ExplainDecisionRequest,
+    ExplainDecisionResponse,
+    ExplainComponent,
+    HowToUnblockRequest,
+    HowToUnblockResponse,
+    UnblockAction,
+    ScoreMcpRequest,
+    ScoreMcpResponse,
+    GetLedgerRequest,
+    GetLedgerResponse,
+    LedgerEntry,
+    SimulatePolicyRequest,
+    SimulatePolicyResponse,
+    MatchedRule,
 } from './types';

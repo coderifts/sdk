@@ -1,15 +1,31 @@
 {
   "name": "@coderifts/sdk",
-  "version": "0.8.2",
-  "description": "TypeScript client for the CodeRifts API — diff, score, analyze, and govern API changes.",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "version": "1.0.1",
+  "description": "Agent Governance SDK — validate API changes before tool invocations. TypeScript client for the CodeRifts API.",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    }
+  },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "scripts": {
-    "build": "tsc",
-    "test": "node --test dist/**/*.test.js",
+    "clean": "rm -rf dist",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build": "npm run clean && npm run build:cjs && npm run build:esm",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -18,7 +34,11 @@
     "openapi",
     "breaking-changes",
     "mcp",
-    "sdk"
+    "sdk",
+    "agent",
+    "governance",
+    "ai-agent",
+    "tool-safety"
   ],
   "author": "CodeRifts <hello@coderifts.com>",
   "license": "MIT",

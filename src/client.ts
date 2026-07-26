@@ -1,176 +1,228 @@
 /**
- * @coderifts/sdk — Client
- *
- * TypeScript client for the CodeRifts API.
- * Uses native fetch (Node 18+).
+ * @coderifts/sdk — Main client class
  */
-
-import type {
-  CodeRiftsOptions,
-  DiffRequest,
-  DiffResponse,
-  ReadinessRequest,
-  ReadinessResponse,
-  McpScoreResponse,
-  StabilityRequest,
-  StabilityResponse,
-  PreflightRequest,
-  PreflightResponse,
-} from './types';
-
+import type { CodeRiftsOptions, DiffRequest, DiffResponse, PreflightCheckRequest, PreflightCheckResponse, ExplainDecisionRequest, ExplainDecisionResponse, HowToUnblockRequest, HowToUnblockResponse, ScoreMcpRequest, ScoreMcpResponse, GetLedgerRequest, GetLedgerResponse, SimulatePolicyRequest, SimulatePolicyResponse } from './types';
 import { ApiError, AuthError, RateLimitError, TimeoutError } from './errors';
-
 const DEFAULT_BASE_URL = 'https://app.coderifts.com';
 const DEFAULT_TIMEOUT = 30_000;
-
 export class CodeRifts {
-  private readonly apiKey: string;
-  private readonly baseUrl: string;
-  private readonly timeout: number;
-
-  constructor(options: CodeRiftsOptions) {
-    if (!options.apiKey) {
-      throw new Error('apiKey is required');
+    private readonly apiKey: string;
+    private readonly baseUrl: string;
+    private readonly timeout: number;
+    constructor(options: CodeRiftsOptions) {
+        if (!options.apiKey) {
+            throw new Error('apiKey is required');
+        }
+        this.apiKey = options.apiKey;
+        this.baseUrl = (options.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
+        this.timeout = options.timeout || DEFAULT_TIMEOUT;
     }
-    this.apiKey = options.apiKey;
-    this.baseUrl = (options.baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
-    this.timeout = options.timeout || DEFAULT_TIMEOUT;
-  }
-
-  // ---------------------------------------------------------------
-  // Internal HTTP helper
-  // ---------------------------------------------------------------
-
-  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
-    const url = `${this.baseUrl}${path}`;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeout);
-
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
-        body: body ? JSON.stringify(body) : undefined,
-        signal: controller.signal,
-      });
-
-      const json = await res.json() as T & { error?: string; message?: string };
-
-      if (!res.ok) {
-        const errorBody = { error: json.error || 'unknown', message: json.message || res.statusText };
-        if (res.status === 401) throw new AuthError(errorBody);
-        if (res.status === 429) throw new RateLimitError(errorBody);
-        throw new ApiError(res.status, errorBody);
-      }
-
-      return json;
-    } catch (err) {
-      if (err instanceof ApiError) throw err;
-      if ((err as Error).name === 'AbortError') {
-        throw new TimeoutError(this.timeout);
-      }
-      throw err;
-    } finally {
-      clearTimeout(timer);
+    // ─── Internal HTTP helper ──────────────────────────────────────────────
+    private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+        const url = `${this.baseUrl}${path}`;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), this.timeout);
+        try {
+            const res = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${this.apiKey}`,
+                },
+                body: body ? JSON.stringify(body) : undefined,
+                signal: controller.signal,
+            });
+            const json = (await res.json()) as T & { error?: string; message?: string };
+            if (!res.ok) {
+                const errorBody = {
+                    error: json.error || 'unknown',
+                    message: json.message || res.statusText,
+                };
+                if (res.status === 401)
+                    throw new AuthError(errorBody);
+                if (res.status === 429)
+                    throw new RateLimitError(errorBody);
+                throw new ApiError(res.status, errorBody);
+            }
+            return json;
+        }
+        catch (err: any) {
+            if (err instanceof ApiError)
+                throw err;
+            if (err.name === 'AbortError') {
+                throw new TimeoutError(this.timeout);
+            }
+            throw err;
+        }
+        finally {
+            clearTimeout(timer);
+        }
     }
-  }
-
-  // ---------------------------------------------------------------
-  // Public methods
-  // ---------------------------------------------------------------
-
-  /**
-   * Compare two OpenAPI specs and detect breaking changes.
-   *
-   * ```ts
-   * const result = await client.diff({
-   *   old_spec: oldYaml,
-   *   new_spec: newYaml,
-   * });
-   * console.log(result.breaking_changes_count);
-   * ```
-   */
-  async diff(req: DiffRequest): Promise<DiffResponse> {
-    return this.request<DiffResponse>('POST', '/api/v1/diff', req);
-  }
-
-  /**
-   * Score an OpenAPI or MCP manifest for agent readiness.
-   *
-   * ```ts
-   * const result = await client.agentReadinessScore({
-   *   spec: manifestJson,
-   *   spec_type: 'mcp',
-   * });
-   * console.log(result.score, result.band);
-   * ```
-   */
-  async agentReadinessScore(req: ReadinessRequest): Promise<ReadinessResponse> {
-    return this.request<ReadinessResponse>('POST', '/api/v1/agent-readiness-score', req);
-  }
-
-  /**
-   * Score an MCP manifest by URL (public, no auth required).
-   * Note: This method does NOT use the API key.
-   *
-   * ```ts
-   * const result = await client.scoreMcp('https://example.com/mcp.json');
-   * console.log(result.score, result.band);
-   * ```
-   */
-  async scoreMcp(url: string): Promise<McpScoreResponse> {
-    const fullUrl = `${this.baseUrl}/api/v1/score-mcp?url=${encodeURIComponent(url)}`;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeout);
-
-    try {
-      const res = await fetch(fullUrl, { signal: controller.signal });
-      const json = await res.json() as McpScoreResponse & { error?: string; message?: string };
-
-      if (!res.ok) {
-        const errorBody = { error: json.error || 'unknown', message: json.message || res.statusText };
-        throw new ApiError(res.status, errorBody);
-      }
-
-      return json;
-    } catch (err) {
-      if (err instanceof ApiError) throw err;
-      if ((err as Error).name === 'AbortError') throw new TimeoutError(this.timeout);
-      throw err;
-    } finally {
-      clearTimeout(timer);
+    // ─── 1. preflightCheck ─────────────────────────────────────────────────
+    /**
+     * Check whether it is safe to proceed with a tool invocation.
+     *
+     * Accepts `old_spec` / `new_spec` (OpenAPI YAML strings) and a `tool_name`.
+     * The SDK converts the specs to MCP tool arrays and calls POST /api/v1/agent/preflight.
+     */
+    async preflightCheck(req: PreflightCheckRequest): Promise<PreflightCheckResponse> {
+        // Send old_spec / new_spec directly — the backend raw-spec mode runs the
+        // full Ω_API governance pipeline on the OpenAPI specs.
+        const raw = await this.request<Record<string, any>>('POST', '/api/v1/agent/preflight', {
+            tool_name: req.tool_name,
+            old_spec: req.old_spec,
+            new_spec: req.new_spec,
+        });
+        const decision = raw.decision || 'ALLOW';
+        return {
+            decision,
+            omega_api: raw.omega_api ?? 0,
+            safe: decision === 'ALLOW' || decision === 'WARN',
+            reflex_triggers: raw.reflex_triggers || [],
+            affected_tools: raw.affected_tools || [],
+            confidence_score: raw.confidence_score,
+            reflex_override: raw.reflex_override,
+            omega_components: raw.omega_components,
+            breaking_changes: raw.breaking_changes,
+            stats: raw.stats,
+            mitigation_available: raw.mitigation_available,
+        };
     }
-  }
-
-  /**
-   * Get API stability analytics for a repository.
-   *
-   * ```ts
-   * const analytics = await client.stability({
-   *   repo: 'myorg/api-service',
-   *   days: 30,
-   * });
-   * console.log(analytics.summary.block_rate);
-   * ```
-   */
-  async stability(req: StabilityRequest): Promise<StabilityResponse> {
-    const params = new URLSearchParams({ repo: req.repo });
-    if (req.days) params.set('days', String(req.days));
-    return this.request<StabilityResponse>('GET', `/api/v1/analytics/stability?${params}`);
-  }
-
-  /**
-   * Generate agent-consumable tool schemas from an OpenAPI spec.
-   *
-   * ```ts
-   * const preflight = await client.agentPreflight({ spec: specYaml });
-   * console.log(preflight.tools);
-   * ```
-   */
-  async agentPreflight(req: PreflightRequest): Promise<PreflightResponse> {
-    return this.request<PreflightResponse>('POST', '/api/v1/agent/preflight', req);
-  }
+    // ─── 2. diff ───────────────────────────────────────────────────────────
+    /**
+     * Full analysis of two OpenAPI specs.
+     */
+    async diff(req: DiffRequest): Promise<DiffResponse> {
+        return this.request<DiffResponse>('POST', '/api/v1/diff', req);
+    }
+    // ─── 3. explainDecision ────────────────────────────────────────────────
+    /**
+     * Returns a human-readable explanation of why a decision was made.
+     *
+     * Computed client-side from the omega components and reflex triggers.
+     */
+    async explainDecision(req: ExplainDecisionRequest): Promise<ExplainDecisionResponse> {
+        const components = [];
+        if (req.omega_components) {
+            for (const [name, value] of Object.entries(req.omega_components)) {
+                if (typeof value === 'number') {
+                    components.push({
+                        name,
+                        value,
+                        description: describeComponent(name, value),
+                    });
+                }
+            }
+        }
+        const triggers = req.reflex_triggers || [];
+        let summary = `Decision: ${req.decision} (Ω_API = ${req.omega_api}).`;
+        if (triggers.length > 0) {
+            summary += ` ${triggers.length} reflex rule(s) triggered.`;
+        }
+        if (req.decision === 'BLOCK') {
+            summary += ' This change is blocked due to high risk.';
+        }
+        else if (req.decision === 'REQUIRE_APPROVAL') {
+            summary += ' This change requires manual approval before merging.';
+        }
+        else if (req.decision === 'WARN') {
+            summary += ' This change has warnings but can proceed.';
+        }
+        else {
+            summary += ' This change is safe to proceed.';
+        }
+        return { summary, components };
+    }
+    // ─── 4. howToUnblock ───────────────────────────────────────────────────
+    /**
+     * Returns actionable steps to resolve a BLOCK decision.
+     *
+     * Computed client-side from breaking changes and detected patterns.
+     */
+    async howToUnblock(req: HowToUnblockRequest): Promise<HowToUnblockResponse> {
+        const actions = [];
+        let step = 1;
+        if (req.decision !== 'BLOCK') {
+            actions.push({
+                step: step++,
+                description: `Current decision is "${req.decision}" — no unblock needed.`,
+            });
+            return { actions };
+        }
+        const bcs = req.breaking_changes || [];
+        if (bcs.length > 0) {
+            actions.push({
+                step: step++,
+                description: `Fix ${bcs.length} breaking change(s) in your spec.`,
+                code_example: bcs
+                    .slice(0, 3)
+                    .map((bc) => `# ${bc.type} at ${bc.path}: ${bc.description}`)
+                    .join('\n'),
+            });
+        }
+        const triggers = req.reflex_triggers || [];
+        for (const trigger of triggers) {
+            actions.push({
+                step: step++,
+                description: `Resolve reflex rule: ${trigger.rule}`,
+            });
+        }
+        actions.push({
+            step: step++,
+            description: 'Request a manual override via POST /api/v1/ledger/:id/override if this is an emergency.',
+        });
+        return { actions };
+    }
+    // ─── 5. scoreMcp ──────────────────────────────────────────────────────
+    /**
+     * Score an MCP manifest for agent safety.
+     */
+    async scoreMcp(req: ScoreMcpRequest): Promise<ScoreMcpResponse> {
+        return this.request<ScoreMcpResponse>('POST', '/api/v1/agent-readiness-score', {
+            spec: req.manifest,
+            spec_type: 'mcp',
+        });
+    }
+    // ─── 6. getLedger ─────────────────────────────────────────────────────
+    /**
+     * Query compliance ledger entries.
+     */
+    async getLedger(req: GetLedgerRequest = {}): Promise<GetLedgerResponse> {
+        const params = new URLSearchParams();
+        if (req.repo)
+            params.set('repo', req.repo);
+        if (req.decision)
+            params.set('decision', req.decision);
+        if (req.from)
+            params.set('from', req.from);
+        if (req.to)
+            params.set('to', req.to);
+        if (req.limit)
+            params.set('limit', String(req.limit));
+        const qs = params.toString();
+        const path = `/api/v1/ledger${qs ? `?${qs}` : ''}`;
+        return this.request<GetLedgerResponse>('GET', path);
+    }
+    // ─── 7. simulatePolicy ───────────────────────────────────────────────
+    /**
+     * Test a YAML policy against two OpenAPI specs.
+     */
+    async simulatePolicy(req: SimulatePolicyRequest): Promise<SimulatePolicyResponse> {
+        return this.request<SimulatePolicyResponse>('POST', '/api/v1/policy-simulator', req);
+    }
+}
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function describeComponent(name: string, value: number): string {
+    const descriptions: Record<string, string> = {
+        S_contract: 'Contract severity score — measures how severe the breaking changes are',
+        P_break: 'Break probability — likelihood that downstream consumers will break',
+        S_blast_eff: 'Blast radius — how many consumers are affected',
+        S_agent: 'Agent safety score — risk to AI agent tool invocations',
+        S_runtime: 'Runtime impact — risk of runtime failures',
+        ECI: 'Ecosystem coupling index — how tightly coupled the API is',
+        M_eff: 'Migration effort — estimated effort to migrate consumers',
+        D_contract: 'Contract distance — semantic distance between old and new contracts',
+        confidence_score: 'Confidence in the analysis result',
+    };
+    return descriptions[name] || `${name} = ${value}`;
 }
