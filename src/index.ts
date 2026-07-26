@@ -13,10 +13,10 @@
  * ```
  */
 
-export { CodeRifts } from './client';
-export { CodeRiftsError, ApiError, TimeoutError, RateLimitError, AuthError } from './errors';
-export { readDecision } from './decision';
-export type { ReadDecisionResult } from './decision';
+export { CodeRifts } from './client.js';
+export { CodeRiftsError, ApiError, TimeoutError, RateLimitError, AuthError } from './errors.js';
+export { readDecision } from './decision.js';
+export type { ReadDecisionResult } from './decision.js';
 export type {
     CodeRiftsOptions,
     ApiErrorBody,
@@ -57,4 +57,4 @@ export type {
     VerifyReceiptResponse,
     DecisionLookupRequest,
     DecisionLookupResponse,
-} from './types';
+} from './types.js';

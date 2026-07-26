@@ -2,7 +2,7 @@
  * @coderifts/sdk — Decision reading (guard helper)
  */
 
-import type { DecisionResultEnvelope, DecisionReceipt, ExecutionAction } from './types';
+import type { DecisionResultEnvelope, DecisionReceipt, ExecutionAction } from './types.js';
 
 /** Pure decision -> execution-action map (mirrors the server's deriveExecutionAction). */
 const EXECUTION_ACTION: Record<string, ExecutionAction> = {

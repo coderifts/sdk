@@ -1,6 +1,6 @@
 {
   "name": "@coderifts/sdk",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Agent Governance SDK — validate API changes before tool invocations. TypeScript client for the CodeRifts API.",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -25,7 +25,8 @@
     "clean": "rm -rf dist",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:esm": "tsc -p tsconfig.esm.json",
-    "build": "npm run clean && npm run build:cjs && npm run build:esm",
+    "build:markers": "node scripts/write-dist-type-markers.mjs",
+    "build": "npm run clean && npm run build:cjs && npm run build:esm && npm run build:markers",
     "pretest": "npm run build",
     "test": "node --test test/*.test.js",
     "prepublishOnly": "npm run build"

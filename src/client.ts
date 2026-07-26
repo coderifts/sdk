@@ -1,8 +1,8 @@
 /**
  * @coderifts/sdk — Main client class
  */
-import type { CodeRiftsOptions, DiffRequest, DiffResponse, PreflightCheckRequest, PreflightCheckResponse, ExplainDecisionRequest, ExplainDecisionResponse, HowToUnblockRequest, HowToUnblockResponse, ScoreMcpRequest, ScoreMcpResponse, GetLedgerRequest, GetLedgerResponse, SimulatePolicyRequest, SimulatePolicyResponse, PreflightChangeSetRequest, PreflightChangeSetResponse, VerifyReceiptResponse, DecisionLookupRequest, DecisionLookupResponse } from './types';
-import { ApiError, AuthError, RateLimitError, TimeoutError } from './errors';
+import type { CodeRiftsOptions, DiffRequest, DiffResponse, PreflightCheckRequest, PreflightCheckResponse, ExplainDecisionRequest, ExplainDecisionResponse, HowToUnblockRequest, HowToUnblockResponse, ScoreMcpRequest, ScoreMcpResponse, GetLedgerRequest, GetLedgerResponse, SimulatePolicyRequest, SimulatePolicyResponse, PreflightChangeSetRequest, PreflightChangeSetResponse, VerifyReceiptResponse, DecisionLookupRequest, DecisionLookupResponse } from './types.js';
+import { ApiError, AuthError, RateLimitError, TimeoutError } from './errors.js';
 const DEFAULT_BASE_URL = 'https://app.coderifts.com';
 const DEFAULT_TIMEOUT = 30_000;
 export class CodeRifts {

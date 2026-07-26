@@ -2,7 +2,7 @@
  * @coderifts/sdk — Error classes
  */
 
-import type { ApiErrorBody } from './types';
+import type { ApiErrorBody } from './types.js';
 /**
  * Base error for all CodeRifts API errors.
  */

@@ -2,6 +2,26 @@
 
 All notable changes to `@coderifts/sdk` are documented here.
 
+## [1.1.1]
+
+Patch — build fix only. No API, type, or runtime-behavior changes (additive-safe; the public
+surface is identical to 1.1.0).
+
+### Fixed
+- **ESM build now runs under pure Node ESM.** The `dist/esm` output failed with
+  `ERR_MODULE_NOT_FOUND` (e.g. `.../dist/esm/client`) when imported by a Node ESM consumer
+  (`import`/`.mjs`), because Node's ESM loader requires explicit file extensions on relative
+  imports and the `tsc` output omitted them. Added explicit `.js` extensions to all relative
+  imports in `src/*.ts`, so both `dist/esm` (ESM) and `dist/cjs` (CJS, which already resolved
+  extensionless) emit fully-specified specifiers. `import('@coderifts/sdk')` and
+  `require('@coderifts/sdk')` both resolve.
+- **Dual per-directory `package.json` type markers** (`dist/esm/package.json` `{"type":"module"}`
+  and `dist/cjs/package.json` `{"type":"commonjs"}`), written by a post-build step. The root
+  `package.json` has no top-level `"type"`, so without these markers Node 18/20 (which lack ESM
+  syntax-detection) would parse `dist/esm/*.js` as CommonJS and throw `SyntaxError` on `export`.
+  The markers make each tree's module system explicit, honestly satisfying `engines.node >= 18`
+  on every supported Node — not just Node ≥ 22.7.
+
 ## [1.1.0] — unreleased
 
 Additive release — the existing 1.0.1 methods and types are unchanged (frozen public API).
