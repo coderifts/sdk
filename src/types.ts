@@ -2,163 +2,171 @@
  * @coderifts/sdk — Type definitions
  */
 
-// ---------------------------------------------------------------
-// Client options
-// ---------------------------------------------------------------
-
 export interface CodeRiftsOptions {
-  /** API key (cr_live_... or cr_test_...) */
-  apiKey: string;
-  /** Base URL override. Defaults to https://app.coderifts.com */
-  baseUrl?: string;
-  /** Request timeout in milliseconds. Defaults to 30000 */
-  timeout?: number;
+    /** API key (cr_live_... or cr_test_...) */
+    apiKey: string;
+    /** Base URL override. Defaults to https://app.coderifts.com */
+    baseUrl?: string;
+    /** Request timeout in milliseconds. Defaults to 30000 */
+    timeout?: number;
 }
-
-// ---------------------------------------------------------------
-// Diff
-// ---------------------------------------------------------------
-
-export interface DiffRequest {
-  old_spec: string;
-  new_spec: string;
-}
-
-export interface BreakingChange {
-  id: string;
-  type: string;
-  severity: string;
-  path: string;
-  method: string;
-  description: string;
-}
-
-export interface DiffResponse {
-  breaking_changes: BreakingChange[];
-  breaking_changes_count: number;
-  non_breaking_changes_count: number;
-  risk_score: number;
-  risk_level: string;
-  semver_suggestion: string;
-  should_block: boolean;
-  omega_api?: number;
-  omega_decision?: string;
-  summary: string;
-}
-
-// ---------------------------------------------------------------
-// Agent Readiness Score
-// ---------------------------------------------------------------
-
-export interface ReadinessSignal {
-  signal: string;
-  severity: string;
-  deduction: number;
-  detail: string;
-}
-
-export interface ReadinessResponse {
-  name: string;
-  score: number;
-  band: string;
-  label: string;
-  signals: ReadinessSignal[];
-  tool_count?: number;
-  spec_type: 'openapi' | 'mcp';
-}
-
-export interface ReadinessRequest {
-  spec: string | object;
-  spec_type?: 'openapi' | 'mcp';
-}
-
-// ---------------------------------------------------------------
-// MCP Score (public demo endpoint)
-// ---------------------------------------------------------------
-
-export interface McpScoreResponse {
-  name: string;
-  score: number;
-  band: string;
-  label: string;
-  signals: ReadinessSignal[];
-  tool_count: number;
-  spec_type: 'mcp';
-}
-
-// ---------------------------------------------------------------
-// Analytics / Stability
-// ---------------------------------------------------------------
-
-export interface StabilityRequest {
-  repo: string;
-  days?: 7 | 14 | 30 | 90;
-}
-
-export interface StabilitySummary {
-  total_analyses: number;
-  blocked_prs: number;
-  block_rate: number;
-  avg_omega_api: number;
-  avg_breaking_changes: number;
-  v_api_level: string;
-}
-
-export interface TrendPoint {
-  date: string;
-  analyses: number;
-  blocked: number;
-  avg_omega: number;
-}
-
-export interface PatternEntry {
-  pattern: string;
-  count: number;
-  pct: number;
-}
-
-export interface OmegaDistribution {
-  allow: number;
-  warn: number;
-  require_approval: number;
-  block: number;
-}
-
-export interface StabilityResponse {
-  repo: string;
-  period_days: number;
-  summary: StabilitySummary;
-  trend: TrendPoint[];
-  top_patterns: PatternEntry[];
-  omega_distribution: OmegaDistribution;
-}
-
-// ---------------------------------------------------------------
-// Agent Preflight
-// ---------------------------------------------------------------
-
-export interface PreflightRequest {
-  spec: string | object;
-}
-
-export interface PreflightTool {
-  name: string;
-  description: string;
-  input_schema: object;
-  endpoint?: string;
-  method?: string;
-}
-
-export interface PreflightResponse {
-  tools: PreflightTool[];
-  tool_count: number;
-}
-
-// ---------------------------------------------------------------
-// Error response
-// ---------------------------------------------------------------
-
 export interface ApiErrorBody {
-  error: string;
-  message: string;
+    error: string;
+    message: string;
+}
+export interface PreflightCheckRequest {
+    tool_name: string;
+    old_spec: string;
+    new_spec: string;
+}
+export interface ReflexTrigger {
+    rule: string;
+    decision: string;
+}
+export interface AffectedTool {
+    tool_name: string;
+    status: string;
+    changes?: string[];
+    patterns?: string[];
+}
+export interface PreflightCheckResponse {
+    decision: string;
+    omega_api: number;
+    safe: boolean;
+    reflex_triggers: ReflexTrigger[];
+    affected_tools: AffectedTool[];
+    confidence_score?: number;
+    reflex_override?: boolean;
+    omega_components?: Record<string, unknown>;
+    breaking_changes?: unknown[];
+    stats?: Record<string, unknown>;
+    mitigation_available?: boolean;
+}
+export interface DiffRequest {
+    before: string;
+    after: string;
+    branch_name?: string;
+    config?: Record<string, unknown>;
+}
+export interface BreakingChange {
+    type: string;
+    path: string;
+    method?: string;
+    field?: string;
+    severity: string;
+    description: string;
+}
+export interface DiffResponse {
+    risk_score: number;
+    risk_level: string;
+    risk_dimensions?: Record<string, number>;
+    semver_suggestion: string;
+    breaking_changes: BreakingChange[];
+    non_breaking_changes: unknown[];
+    security_findings: unknown[];
+    changelog: Record<string, string[]>;
+    policy_violations: unknown[];
+    should_block: boolean;
+    detected_patterns: unknown[];
+    compatibility_suggestions: unknown[];
+    omega_api?: number;
+    omega_decision?: string;
+    reflex_override?: boolean;
+    reflex_triggers?: ReflexTrigger[];
+    confidence_score?: number;
+    omega_components?: Record<string, unknown>;
+    omega_audit?: Record<string, unknown>;
+    stats?: Record<string, unknown>;
+    pii_findings?: unknown[];
+}
+export interface ExplainDecisionRequest {
+    omega_api: number;
+    decision: string;
+    reflex_triggers?: ReflexTrigger[];
+    omega_components?: Record<string, unknown>;
+}
+export interface ExplainComponent {
+    name: string;
+    value: number;
+    description: string;
+}
+export interface ExplainDecisionResponse {
+    summary: string;
+    components: ExplainComponent[];
+}
+export interface HowToUnblockRequest {
+    decision: string;
+    breaking_changes?: BreakingChange[];
+    detected_patterns?: unknown[];
+    reflex_triggers?: ReflexTrigger[];
+}
+export interface UnblockAction {
+    step: number;
+    description: string;
+    code_example?: string;
+}
+export interface HowToUnblockResponse {
+    actions: UnblockAction[];
+}
+export interface ScoreMcpRequest {
+    manifest: {
+        tools: unknown[];
+        [key: string]: unknown;
+    };
+}
+export interface ScoreMcpResponse {
+    overall_score: number;
+    band: string;
+    label?: string;
+    signals?: unknown[];
+    tool_count?: number;
+}
+export interface GetLedgerRequest {
+    repo?: string;
+    decision?: string;
+    from?: string;
+    to?: string;
+    limit?: number;
+}
+export interface LedgerEntry {
+    id: number;
+    repo: string | null;
+    pr_number: number | null;
+    pr_author: string | null;
+    commit_sha: string | null;
+    decision: string;
+    omega_api: number | null;
+    risk_score: number | null;
+    risk_level: string | null;
+    breaking_changes: number;
+    reflex_override: boolean;
+    reflex_triggers: ReflexTrigger[];
+    policy_rule_id: string | null;
+    policy_action: string | null;
+    approved_by: string | null;
+    approved_at: string | null;
+    override_reason: string | null;
+    overridden_by: string | null;
+    overridden_at: string | null;
+    created_at: string;
+}
+export interface GetLedgerResponse {
+    repo: string | null;
+    total: number;
+    entries: LedgerEntry[];
+}
+export interface SimulatePolicyRequest {
+    policy_yaml: string;
+    old_spec: string;
+    new_spec: string;
+}
+export interface MatchedRule {
+    rule_id?: string;
+    action: string;
+    conditions?: Record<string, unknown>;
+}
+export interface SimulatePolicyResponse {
+    effective_action: string;
+    matched_rules: MatchedRule[];
+    [key: string]: unknown;
 }

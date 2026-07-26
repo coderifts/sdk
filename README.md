@@ -1,8 +1,8 @@
 # @coderifts/sdk
 
-TypeScript client for the [CodeRifts](https://coderifts.com) API — detect breaking changes, score API agent-readiness, and monitor API stability.
+Agent Governance SDK for the [CodeRifts](https://coderifts.com) API. Validate API changes before tool invocations in AI agent infrastructure (LangChain, AutoGen, Copilot, Claude, Grok, etc.).
 
-## Install
+## Installation
 
 ```bash
 npm install @coderifts/sdk@1.0.1
@@ -10,76 +10,143 @@ npm install @coderifts/sdk@1.0.1
 
 ## Quick Start
 
-```ts
+```typescript
 import { CodeRifts } from '@coderifts/sdk';
 
 const client = new CodeRifts({ apiKey: 'cr_live_...' });
 
-// Diff two OpenAPI specs
-const diff = await client.diff({
+const result = await client.preflightCheck({
+  tool_name: 'get_refund_status',
   old_spec: oldYaml,
   new_spec: newYaml,
 });
-console.log(diff.breaking_changes_count, diff.risk_level);
 
-// Score an MCP manifest for agent readiness
-const score = await client.agentReadinessScore({
-  spec: mcpManifest,
-  spec_type: 'mcp',
-});
-console.log(score.score, score.band); // 100 STRONG
-
-// Get API stability analytics
-const analytics = await client.stability({
-  repo: 'myorg/api-service',
-  days: 30,
-});
-console.log(analytics.summary.block_rate);
+if (!result.safe) {
+  console.error('Blocked:', result.decision, result.reflex_triggers);
+  process.exit(1);
+}
 ```
 
-## API Reference
+## Methods
 
-### `new CodeRifts(options)`
+### `preflightCheck(options)`
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `apiKey` | `string` | *required* | Your API key (`cr_live_...` or `cr_test_...`) |
-| `baseUrl` | `string` | `https://app.coderifts.com` | API base URL |
-| `timeout` | `number` | `30000` | Request timeout in ms |
+Check whether it is safe to proceed with a tool invocation.
 
-### Methods
+```typescript
+const result = await client.preflightCheck({
+  tool_name: 'get_refund_status',
+  old_spec: '...',
+  new_spec: '...',
+});
+// result.decision: 'BLOCK' | 'REQUIRE_APPROVAL' | 'WARN' | 'ALLOW'
+// result.omega_api: number
+// result.safe: boolean
+// result.reflex_triggers: Array<{ rule: string; decision: string }>
+// result.affected_tools: Array<{ tool_name: string; status: string }>
+```
 
-| Method | Description | Auth Required |
-|---|---|---|
-| `diff(req)` | Compare two OpenAPI specs | Yes |
-| `agentReadinessScore(req)` | Score a spec for agent readiness | Yes |
-| `scoreMcp(url)` | Score an MCP manifest by URL | No |
-| `stability(req)` | Get API stability analytics | Yes |
-| `agentPreflight(req)` | Generate tool schemas from a spec | Yes |
+### `diff(options)`
 
-### Error Handling
+Full analysis of two OpenAPI specs.
 
-```ts
-import { ApiError, AuthError, RateLimitError, TimeoutError } from '@coderifts/sdk';
+```typescript
+const result = await client.diff({
+  before: '...',
+  after: '...',
+});
+// result.omega_decision: string
+// result.risk_score: number
+// result.breaking_changes: BreakingChange[]
+// result.should_block: boolean
+```
+
+### `explainDecision(options)`
+
+Human-readable explanation of why a decision was made.
+
+```typescript
+const explanation = await client.explainDecision({
+  omega_api: 43.95,
+  decision: 'BLOCK',
+  reflex_triggers: [...],
+});
+// explanation.summary: string
+// explanation.components: Array<{ name: string; value: number; description: string }>
+```
+
+### `howToUnblock(options)`
+
+Actionable steps to resolve a BLOCK decision.
+
+```typescript
+const steps = await client.howToUnblock({
+  decision: 'BLOCK',
+  breaking_changes: [...],
+  detected_patterns: [...],
+});
+// steps.actions: Array<{ step: number; description: string; code_example?: string }>
+```
+
+### `scoreMcp(manifest)`
+
+Score an MCP manifest for agent safety.
+
+```typescript
+const score = await client.scoreMcp({
+  manifest: { tools: [...] },
+});
+// score.overall_score: number (0-100)
+// score.band: 'STRONG' | 'GOOD' | 'NEEDS_WORK' | 'POOR' | 'CRITICAL'
+```
+
+### `getLedger(options)`
+
+Query compliance ledger entries.
+
+```typescript
+const ledger = await client.getLedger({
+  repo: 'owner/repo',
+  decision: 'BLOCK',
+  limit: 10,
+});
+// ledger.entries: LedgerEntry[]
+// ledger.total: number
+```
+
+### `simulatePolicy(options)`
+
+Test a YAML policy against two OpenAPI specs.
+
+```typescript
+const result = await client.simulatePolicy({
+  policy_yaml: '...',
+  old_spec: '...',
+  new_spec: '...',
+});
+// result.effective_action: string
+// result.matched_rules: MatchedRule[]
+```
+
+## Error Handling
+
+All methods throw a typed `CodeRiftsError` on non-2xx responses:
+
+```typescript
+import { CodeRifts, CodeRiftsError } from '@coderifts/sdk';
 
 try {
-  await client.diff({ old_spec, new_spec });
+  const result = await client.preflightCheck({ ... });
 } catch (err) {
-  if (err instanceof RateLimitError) {
-    console.log('Rate limited, retry later');
-  } else if (err instanceof AuthError) {
-    console.log('Invalid API key');
-  } else if (err instanceof TimeoutError) {
-    console.log('Request timed out');
-  } else if (err instanceof ApiError) {
-    console.log(err.status, err.code, err.body);
+  if (err instanceof CodeRiftsError) {
+    console.error(err.code, err.message);
   }
 }
 ```
 
-## Get an API Key
+## Documentation
 
-Sign up at [app.coderifts.com/api/signup](https://app.coderifts.com/api/signup) — the free tier includes 50 requests/month.
+Full API documentation: [https://coderifts.com/docs](https://coderifts.com/docs)
 
 ## License
 
