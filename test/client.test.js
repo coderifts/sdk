@@ -47,6 +47,92 @@ test('verifyReceipt -> POST /api/v1/verify-receipt with { token }', async () => 
     });
 });
 
+/**
+ * Pins VerifyReceiptResponse to the live POST /api/v1/verify-receipt body.
+ * Why this exists: the type previously declared only signature fields (valid/reason/status/payload?),
+ * while the endpoint returns authorization fields too. The contract drifted because nothing measured
+ * it — same class of failure as unpinned MCP output schemas. Fixtures are built from two live
+ * measurements (no invented response shapes).
+ *
+ * Without intent context, keys were:
+ *   valid, reason, status, payload, currently_authorized, authz_note, correlation_id
+ * With { operation: 'merge', environment: 'production' }:
+ *   the same seven plus authz_status and authz_reason
+ *   (currently_authorized false, authz_status 'VERIFIED_SCOPE_MISMATCH',
+ *    authz_reason 'receipt_context_required')
+ */
+test('VerifyReceiptResponse shape — required keys + currently_authorized null (live-measured contract)', async () => {
+    // Keys always present (both measurements). Value content for signature fields is not fully
+    // quoted in the measurement dump; keys and the quoted authz triple are what we pin.
+    const withoutIntent = {
+        valid: true,
+        reason: null,
+        status: 'VERIFIED_CURRENT',
+        payload: {},
+        currently_authorized: false,
+        authz_note: '',
+        correlation_id: '',
+    };
+    const withIntent = {
+        ...withoutIntent,
+        currently_authorized: false,
+        authz_status: 'VERIFIED_SCOPE_MISMATCH',
+        authz_reason: 'receipt_context_required',
+    };
+    const authzUnevaluated = {
+        ...withoutIntent,
+        currently_authorized: null, // null ≠ unauthorized; evaluation did not complete
+    };
+
+    const REQUIRED = [
+        'valid',
+        'reason',
+        'status',
+        'payload',
+        'currently_authorized',
+        'authz_note',
+        'correlation_id',
+    ];
+    for (const key of REQUIRED) {
+        assert.ok(Object.prototype.hasOwnProperty.call(withoutIntent, key), `without-intent must have ${key}`);
+        assert.ok(Object.prototype.hasOwnProperty.call(withIntent, key), `with-intent must have ${key}`);
+        assert.ok(Object.prototype.hasOwnProperty.call(authzUnevaluated, key), `null-authz fixture must have ${key}`);
+    }
+    assert.equal(withoutIntent.currently_authorized, false);
+    assert.equal(authzUnevaluated.currently_authorized, null);
+    assert.equal(typeof withoutIntent.authz_note, 'string');
+    assert.equal(typeof withoutIntent.correlation_id, 'string');
+    assert.equal(typeof withoutIntent.payload, 'object');
+    assert.ok(withoutIntent.payload !== null);
+
+    // Conditional pair only on the with-intent measurement
+    assert.equal(withIntent.authz_status, 'VERIFIED_SCOPE_MISMATCH');
+    assert.equal(withIntent.authz_reason, 'receipt_context_required');
+    assert.equal(Object.prototype.hasOwnProperty.call(withoutIntent, 'authz_status'), false);
+    assert.equal(Object.prototype.hasOwnProperty.call(withoutIntent, 'authz_reason'), false);
+
+    // Round-trip: client passes the full body through (no narrowing) — pin that the measured
+    // fields survive on the returned object, including currently_authorized: null.
+    await withMockFetch(authzUnevaluated, async () => {
+        const c = new CodeRifts({ apiKey: 'cr_test_abc' });
+        const res = await c.verifyReceipt('the-token');
+        for (const key of REQUIRED) {
+            assert.ok(Object.prototype.hasOwnProperty.call(res, key), `client return must surface ${key}`);
+        }
+        assert.equal(res.currently_authorized, null);
+        assert.equal(res.valid, true);
+        assert.equal(res.status, 'VERIFIED_CURRENT');
+    });
+
+    await withMockFetch(withIntent, async () => {
+        const c = new CodeRifts({ apiKey: 'cr_test_abc' });
+        const res = await c.verifyReceipt('the-token');
+        assert.equal(res.currently_authorized, false);
+        assert.equal(res.authz_status, 'VERIFIED_SCOPE_MISMATCH');
+        assert.equal(res.authz_reason, 'receipt_context_required');
+    });
+});
+
 test('getDecisionDetails -> POST /api/v1/decisions/lookup', async () => {
     await withMockFetch({ decision: 'ALLOW', decision_result: {}, meta: {} }, async (cap) => {
         const c = new CodeRifts({ apiKey: 'cr_test_abc' });

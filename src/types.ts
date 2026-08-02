@@ -304,7 +304,20 @@ export interface VerifyReceiptResponse {
     valid: boolean;
     reason: string | null;
     status: ReceiptStatus;
-    payload?: Record<string, unknown>;
+    /** Always present on the live endpoint (measured with and without intent context). */
+    payload: Record<string, unknown>;
+    /**
+     * Whether this receipt is authorized right now for the evaluated context.
+     * `true` / `false` are answers; `null` means authorization could not be evaluated
+     * (not unauthorized and not authorized). Distinct from `valid` (signature/integrity).
+     */
+    currently_authorized: boolean | null;
+    authz_note: string;
+    correlation_id: string;
+    /** Present when intent context (e.g. operation/environment) was supplied on the request. */
+    authz_status?: string;
+    /** Present when intent context (e.g. operation/environment) was supplied on the request. */
+    authz_reason?: string;
 }
 export interface DecisionLookupRequest {
     decision_id?: string;
