@@ -18,11 +18,13 @@ function withMockFetch(responseBody, fn) {
         .finally(() => { global.fetch = orig; });
 }
 
-test('preflightChangeSet -> POST /api/v1/preflight (bearer auth, json body)', async () => {
+test('preflightChangeSet -> POST /api/v1/preflight (bearer auth, json body, required preflight_mode)', async () => {
     await withMockFetch({ decision: 'BLOCK', execution_action: 'STOP' }, async (cap) => {
         const c = new CodeRifts({ apiKey: 'cr_test_abc' });
         const res = await c.preflightChangeSet({
+            preflight_mode: 'authorize',
             artifacts: [{ id: 'api', type: 'grpc', before: 'a', after: 'b' }],
+            context: { operation: 'merge' },
             idempotency_key: 'k1',
         });
         assert.equal(cap.url, 'https://app.coderifts.com/api/v1/preflight');
@@ -30,9 +32,39 @@ test('preflightChangeSet -> POST /api/v1/preflight (bearer auth, json body)', as
         assert.equal(cap.opts.headers.Authorization, 'Bearer cr_test_abc');
         assert.equal(cap.opts.headers['Content-Type'], 'application/json');
         const body = JSON.parse(cap.opts.body);
+        assert.equal(body.preflight_mode, 'authorize');
         assert.equal(body.artifacts[0].id, 'api');
         assert.equal(body.idempotency_key, 'k1');
         assert.equal(res.decision, 'BLOCK');
+    });
+});
+
+test('analyzeChangeSet injects preflight_mode analyze (no authorize/receipt meaning)', async () => {
+    await withMockFetch({ analysis_outcome: 'NO_BREAK_DETECTED', may_execute: false }, async (cap) => {
+        const c = new CodeRifts({ apiKey: 'cr_test_abc' });
+        await c.analyzeChangeSet({
+            artifacts: [{ id: 'api', type: 'openapi', before: 'a', after: 'b' }],
+        });
+        const body = JSON.parse(cap.opts.body);
+        assert.equal(body.preflight_mode, 'analyze');
+        assert.equal(body.artifacts[0].id, 'api');
+        // Mode is fixed by the method — callers omit preflight_mode on the arg
+        assert.ok(!('preflight_mode' in {
+            artifacts: [{ id: 'api', type: 'openapi', before: 'a', after: 'b' }],
+        }));
+    });
+});
+
+test('authorizeChangeSet injects preflight_mode authorize (requires context.operation on server)', async () => {
+    await withMockFetch({ decision: 'ALLOW', execution_action: 'CONTINUE' }, async (cap) => {
+        const c = new CodeRifts({ apiKey: 'cr_test_abc' });
+        await c.authorizeChangeSet({
+            artifacts: [{ id: 'api', type: 'openapi', before: 'a', after: 'b' }],
+            context: { operation: 'merge' },
+        });
+        const body = JSON.parse(cap.opts.body);
+        assert.equal(body.preflight_mode, 'authorize');
+        assert.equal(body.context.operation, 'merge');
     });
 });
 

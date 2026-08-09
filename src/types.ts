@@ -265,12 +265,26 @@ export interface PreflightChangeSetContext {
     pull_request?: string | number;
     policy_profile?: string;
 }
+/**
+ * Decision Spec v2 preflight mode (top-level; required by POST /api/v1/preflight).
+ * - analyze  — informational risk only (no receipt / no execution permission)
+ * - authorize — operation-bound may-proceed (requires context.operation; may mint a receipt)
+ */
+export type PreflightMode = 'analyze' | 'authorize';
 export interface PreflightChangeSetRequest {
+    /**
+     * Required top-level mode (server returns HTTP 400 if omitted).
+     * Prefer `analyzeChangeSet` / `authorizeChangeSet` wrappers so the two meanings
+     * cannot be mixed via a silent default.
+     */
+    preflight_mode: PreflightMode;
     artifacts: Artifact[];
     context?: PreflightChangeSetContext;
     previous_receipt?: string;
     idempotency_key?: string;
 }
+/** Request body for analyze/authorize wrappers (mode is fixed by the method). */
+export type PreflightChangeSetBody = Omit<PreflightChangeSetRequest, 'preflight_mode'>;
 export interface ChangeSetArtifactFinding {
     id: string;
     type: string;

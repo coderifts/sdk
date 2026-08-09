@@ -1,7 +1,7 @@
 /**
  * @coderifts/sdk — Main client class
  */
-import type { CodeRiftsOptions, DiffRequest, DiffResponse, PreflightCheckRequest, PreflightCheckResponse, ExplainDecisionRequest, ExplainDecisionResponse, HowToUnblockRequest, HowToUnblockResponse, ScoreMcpRequest, ScoreMcpResponse, GetLedgerRequest, GetLedgerResponse, SimulatePolicyRequest, SimulatePolicyResponse, PreflightChangeSetRequest, PreflightChangeSetResponse, VerifyReceiptResponse, DecisionLookupRequest, DecisionLookupResponse } from './types.js';
+import type { CodeRiftsOptions, DiffRequest, DiffResponse, PreflightCheckRequest, PreflightCheckResponse, ExplainDecisionRequest, ExplainDecisionResponse, HowToUnblockRequest, HowToUnblockResponse, ScoreMcpRequest, ScoreMcpResponse, GetLedgerRequest, GetLedgerResponse, SimulatePolicyRequest, SimulatePolicyResponse, PreflightChangeSetRequest, PreflightChangeSetBody, PreflightChangeSetResponse, VerifyReceiptResponse, DecisionLookupRequest, DecisionLookupResponse } from './types.js';
 import { ApiError, AuthError, RateLimitError, TimeoutError } from './errors.js';
 const DEFAULT_BASE_URL = 'https://app.coderifts.com';
 const DEFAULT_TIMEOUT = 30_000;
@@ -213,12 +213,27 @@ export class CodeRifts {
     // ─── 8. preflightChangeSet ─────────────────────────────────────────────
     /**
      * Preflight a multi-artifact change set (OpenAPI / GraphQL / gRPC / AsyncAPI / MCP manifest)
-     * in one call. Returns one aggregated ALLOW/WARN/REQUIRE_APPROVAL/BLOCK decision (strictest-wins)
-     * with per-artifact findings, a bundle fingerprint, and a decision-result.v1.1 envelope +
-     * chain receipt. POST /api/v1/preflight.
+     * in one call. Requires top-level `preflight_mode: 'analyze' | 'authorize'` (Decision Spec v2;
+     * server returns HTTP 400 if omitted). Prefer `analyzeChangeSet` / `authorizeChangeSet` so the
+     * two authorization meanings cannot be mixed. POST /api/v1/preflight.
      */
     async preflightChangeSet(req: PreflightChangeSetRequest): Promise<PreflightChangeSetResponse> {
         return this.request<PreflightChangeSetResponse>('POST', '/api/v1/preflight', req);
+    }
+    /**
+     * Risk-only preflight (`preflight_mode: 'analyze'`). Informational — not permission;
+     * does not mint an operation-bound receipt. POST /api/v1/preflight.
+     */
+    async analyzeChangeSet(req: PreflightChangeSetBody): Promise<PreflightChangeSetResponse> {
+        return this.preflightChangeSet({ ...req, preflight_mode: 'analyze' });
+    }
+    /**
+     * Operation-bound authorize preflight (`preflight_mode: 'authorize'`).
+     * Requires a non-empty `context.operation` (e.g. merge | deploy | tool_call) — the server
+     * returns HTTP 400 otherwise. May mint a signed receipt. POST /api/v1/preflight.
+     */
+    async authorizeChangeSet(req: PreflightChangeSetBody): Promise<PreflightChangeSetResponse> {
+        return this.preflightChangeSet({ ...req, preflight_mode: 'authorize' });
     }
     // ─── 9. verifyReceipt ──────────────────────────────────────────────────
     /**

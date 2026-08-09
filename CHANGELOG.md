@@ -2,6 +2,26 @@
 
 All notable changes to `@coderifts/sdk` are documented here.
 
+## [2.0.0]
+
+**Breaking** — Decision Spec v2 alignment. The live server requires top-level
+`preflight_mode` on `POST /api/v1/preflight` (HTTP 400 if omitted). SDK 1.2.0 did
+not send it, so every `preflightChangeSet` call 400ed (P0).
+
+### Breaking
+- **`PreflightChangeSetRequest.preflight_mode` is required** (`'analyze' | 'authorize'`).
+  Callers of `preflightChangeSet` must pass it; TypeScript now fails at compile time
+  instead of HTTP 400 at runtime. Not nested under `context`.
+
+### Added
+- **`PreflightMode`** — `'analyze' | 'authorize'`.
+- **`analyzeChangeSet(req)`** — thin wrapper that sets `preflight_mode: 'analyze'`
+  (informational risk only; not permission).
+- **`authorizeChangeSet(req)`** — thin wrapper that sets `preflight_mode: 'authorize'`.
+  Requires non-empty `context.operation` on the server (400 otherwise).
+- **`PreflightChangeSetBody`** — `Omit<PreflightChangeSetRequest, 'preflight_mode'>`
+  for the wrappers.
+
 ## [1.1.1]
 
 Patch — build fix only. No API, type, or runtime-behavior changes (additive-safe; the public

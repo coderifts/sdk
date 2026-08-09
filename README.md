@@ -133,18 +133,32 @@ const result = await client.simulatePolicy({
 These return the `decision-result.v1.1` envelope with a top-level `execution_action`
 (`CONTINUE` | `CONTINUE_WITH_MONITORING` | `REQUEST_APPROVAL` | `STOP`) and a signed chain receipt.
 
-### `preflightChangeSet(request)`
+### `preflightChangeSet(request)` / `analyzeChangeSet` / `authorizeChangeSet`
 
-Preflight a multi-artifact change set in one call — one aggregated decision (strictest-wins) plus a
-bundle fingerprint, per-artifact findings, and a `decision_result` envelope. `POST /api/v1/preflight`.
+Preflight a multi-artifact change set (`POST /api/v1/preflight`). **Required** top-level
+`preflight_mode: 'analyze' | 'authorize'` (Decision Spec v2; server returns 400 if omitted).
+
+Prefer the wrappers so the two meanings cannot be mixed:
 
 ```typescript
-const res = await client.preflightChangeSet({
+// Risk-only (informational — not permission)
+const risk = await client.analyzeChangeSet({
+  artifacts: [{ id: 'payments', type: 'openapi', before: oldSpec, after: newSpec }],
+});
+
+// Operation-bound authorize (requires context.operation; may mint a receipt)
+const auth = await client.authorizeChangeSet({
   artifacts: [{ id: 'payments', type: 'openapi', before: oldSpec, after: newSpec }],
   context: { operation: 'merge', environment: 'production' },
   idempotency_key: 'pr-1234',
 });
-// res.decision, res.execution_action, res.bundle_fingerprint, res.decision_result, res.artifacts[]
+
+// Or set the mode explicitly:
+const res = await client.preflightChangeSet({
+  preflight_mode: 'authorize',
+  artifacts: [{ id: 'payments', type: 'openapi', before: oldSpec, after: newSpec }],
+  context: { operation: 'merge' },
+});
 ```
 
 ### `verifyReceipt(token)`
