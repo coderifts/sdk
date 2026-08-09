@@ -170,12 +170,42 @@ export interface SimulatePolicyResponse {
     matched_rules: MatchedRule[];
     [key: string]: unknown;
 }
-/* ── v1.1.0 — envelope-aware governance (decision-result.v1.1) ──────────────────
- * Interfaces are closed by design. TS structural typing already lets consumers pass
- * objects carrying ADDITIONAL fields (the app may append forward-compatible envelope
- * fields), so a wider server payload never breaks an SDK build. */
-export type Decision = 'ALLOW' | 'WARN' | 'REQUIRE_APPROVAL' | 'BLOCK';
-export type ExecutionAction = 'CONTINUE' | 'CONTINUE_WITH_MONITORING' | 'REQUEST_APPROVAL' | 'STOP';
+/* ── decision-result.v1 envelope (ID75) ───────────────────────────────────────
+ * Canonical shape is GENERATED from coderifts-app/schemas/decision-result.v1.producer.json
+ * (scripts/generate-sdk-types.js). Do not hand-edit src/generated/decision-result.v1.ts.
+ * Re-exported here under the stable public names used since v1.1.0.
+ *
+ * Drift note (ID804 class): the previous hand-written DecisionResultEnvelope lacked
+ * place/source binding (repository/branch/pull_request/base/head/srcmode), preflight_mode,
+ * pattern_sources, required_action_core, completeness_* fields, Decision Spec scalars
+ * (risk_score/breaking_changes/patterns), and closed enums on NextAction/Evidence.
+ * Generated types restore schema parity. Receipt.expires_at was hand-added on the SDK
+ * but is NOT in producer $defs.receipt (optional convenience on live tokens only).
+ */
+import type {
+    DecisionResultEnvelope,
+    Decision,
+    ExecutionAction,
+    DecisionReason,
+    DecisionReceipt,
+    DecisionEvidence,
+    NextAction,
+    Reason,
+    Receipt,
+    Evidence,
+} from './generated/decision-result.v1.js';
+export type {
+    DecisionResultEnvelope,
+    Decision,
+    ExecutionAction,
+    DecisionReason,
+    DecisionReceipt,
+    DecisionEvidence,
+    NextAction,
+    Reason,
+    Receipt,
+    Evidence,
+};
 export type ReceiptStatus =
     | 'VERIFIED_CURRENT'
     | 'VERIFIED_EXPIRED'
@@ -189,68 +219,6 @@ export type ReceiptStatus =
     | 'MALFORMED'
     | 'UNSUPPORTED_VERSION'
     | 'REGISTRY_UNREACHABLE';
-export interface DecisionReason {
-    code: string;
-    message: string;
-}
-export interface NextAction {
-    type: string;
-    instruction: string;
-    target: string | null;
-    required: boolean;
-    precondition: string | null;
-}
-export interface DecisionReceipt {
-    token: string;
-    format_version: string;
-    key_id: string;
-    issued_at: string;
-    expires_at?: string;
-}
-export interface DecisionEvidence {
-    type: string;
-    source: string;
-    finding: string;
-    severity: string;
-}
-export interface DecisionResultEnvelope {
-    spec_version: string;
-    decision: Decision;
-    safe_for_agent: boolean;
-    execution_action: ExecutionAction;
-    decision_id: string;
-    correlation_id: string;
-    evaluated_at: string;
-    expires_at: string;
-    summary: string;
-    blocking_reasons: DecisionReason[];
-    warnings: DecisionReason[];
-    required_action: string | null;
-    next_actions: NextAction[];
-    fingerprint: string;
-    input_fingerprint: string;
-    decision_body_hash: string | null;
-    receipt: DecisionReceipt;
-    report_url: string | null;
-    evidence_quality: string;
-    confidence: number | null;
-    calibration_version?: string | null;
-    evidence: DecisionEvidence[];
-    analysis_complete: boolean;
-    degraded_reasons?: DecisionReason[];
-    /** v1.1 additive fields (null / absent when not covered on a given path). */
-    receipt_type?: string | null;
-    operation?: string | null;
-    environment?: string | null;
-    artifact_digest?: string | null;
-    decision_spec_version?: string | null;
-    policy_hash?: string | null;
-    ruleset_hash?: string | null;
-    audience?: string | null;
-    authorization_scope_hash?: string | null;
-    engine_build_id?: string | null;
-    deployment_id?: string | null;
-}
 export interface Artifact {
     id: string;
     type: 'openapi' | 'graphql' | 'grpc' | 'asyncapi' | 'mcp_manifest';
