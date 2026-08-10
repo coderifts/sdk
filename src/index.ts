@@ -60,6 +60,7 @@ export type {
     AnalyzeChangeSetResponse,
     AuthorizeChangeSetResponse,
     PreflightChangeSetResponse,
+    VerifyReceiptIntendedContext,
     VerifyReceiptResponse,
     DecisionLookupRequest,
     DecisionLookupResponse,

@@ -382,6 +382,47 @@ export interface AuthorizeChangeSetResponse {
 export type PreflightChangeSetResponse =
     | AnalyzeChangeSetResponse
     | AuthorizeChangeSetResponse;
+/**
+ * Intended context for a verify-receipt call — the "what are you about to do?" half of the question.
+ *
+ * WITHOUT it the endpoint answers a signature question only: `valid` / `status` reflect
+ * authenticity and expiry, and `currently_authorized` comes back **null** — not authorized and not
+ * unauthorized, simply not evaluated. WITH it the server binds the receipt against the stated
+ * intent and `currently_authorized` becomes a real `true` / `false`.
+ *
+ * So: a valid signature is not authorization. If you are about to act on a receipt, supply the
+ * context you are about to act under — otherwise the only honest reading of the answer is
+ * "authentic token, authorization unknown".
+ *
+ * Every field is optional and any subset may be sent; the server evaluates what it was given.
+ * This list mirrors exactly what `POST /api/v1/verify-receipt` reads — nothing here is invented.
+ */
+export interface VerifyReceiptIntendedContext {
+    /** Operation the receipt must authorize (e.g. merge | deploy | publish | tool_call). */
+    operation?: string;
+    /** Apply-site target the receipt must bind. */
+    target_id?: string;
+    /** Environment the receipt must match (e.g. production). */
+    environment?: string;
+    /** Change fingerprint that must equal the receipt's. */
+    fingerprint?: string;
+    /** Audience the receipt must match. */
+    audience?: string;
+    /** Place binding: repository the receipt must be bound to. */
+    repository?: string;
+    /** Place binding: branch the receipt must be bound to. */
+    branch?: string;
+    /** Place binding: pull request the receipt must be bound to. */
+    pull_request?: string | number;
+    /**
+     * The body_hash-bound decision envelope. Required for a meaningful scope evaluation — with
+     * intent fields but no envelope the server fails closed (`currently_authorized: false`) rather
+     * than guessing.
+     */
+    decision_result?: DecisionResultEnvelope | Record<string, unknown>;
+    /** Optional lifecycle indices (supersede / revocation) the server consults when provided. */
+    indices?: Record<string, unknown>;
+}
 export interface VerifyReceiptResponse {
     valid: boolean;
     reason: string | null;
@@ -400,6 +441,10 @@ export interface VerifyReceiptResponse {
     authz_status?: string;
     /** Present when intent context (e.g. operation/environment) was supplied on the request. */
     authz_reason?: string;
+    /** Lifecycle state from the authorization evaluation; omitted when currently_authorized is null. */
+    authz_state?: string;
+    /** How tightly the receipt was bound for this evaluation (e.g. content-only vs place-bound). */
+    binding_level?: string;
 }
 export interface DecisionLookupRequest {
     decision_id?: string;

@@ -80,6 +80,71 @@ test('verifyReceipt -> POST /api/v1/verify-receipt with { token }', async () => 
 });
 
 /**
+ * Intended context (audit part 7 #4). Without it the endpoint answers a signature question only and
+ * currently_authorized comes back null; the SDK previously sent { token } and nothing else, so a
+ * caller could never reach a real true/false through it — while the published snippets already
+ * showed an operation-bearing call. These pin that the context now reaches the wire, and that an
+ * absent field stays ABSENT rather than becoming a null the server would read as a stated intent.
+ */
+test('verifyReceipt sends the supplied intended context alongside the token', async () => {
+    await withMockFetch({ valid: true, status: 'VERIFIED_CURRENT', reason: null, currently_authorized: true }, async (cap) => {
+        const c = new CodeRifts({ apiKey: 'cr_test_abc' });
+        const res = await c.verifyReceipt('the-token', { operation: 'merge', environment: 'production' });
+        assert.deepEqual(JSON.parse(cap.opts.body), {
+            token: 'the-token',
+            operation: 'merge',
+            environment: 'production',
+        });
+        assert.equal(res.currently_authorized, true);
+    });
+});
+
+test('verifyReceipt carries every field the REST endpoint reads', async () => {
+    await withMockFetch({ valid: true, status: 'VERIFIED_CURRENT', reason: null }, async (cap) => {
+        const c = new CodeRifts({ apiKey: 'cr_test_abc' });
+        const intended = {
+            operation: 'deploy',
+            target_id: 'svc-1',
+            environment: 'production',
+            fingerprint: 'sha256:abc',
+            audience: 'aud-1',
+            repository: 'owner/repo',
+            branch: 'main',
+            pull_request: 42,
+            decision_result: { spec_version: 'decision-result.v1.1' },
+            indices: { revoked: [] },
+        };
+        await c.verifyReceipt('the-token', intended);
+        assert.deepEqual(JSON.parse(cap.opts.body), { token: 'the-token', ...intended });
+    });
+});
+
+test('verifyReceipt omits undefined context fields — absent stays absent, never null', async () => {
+    await withMockFetch({ valid: true, status: 'VERIFIED_CURRENT', reason: null }, async (cap) => {
+        const c = new CodeRifts({ apiKey: 'cr_test_abc' });
+        await c.verifyReceipt('the-token', { operation: 'merge', environment: undefined, target_id: undefined });
+        const body = JSON.parse(cap.opts.body);
+        assert.deepEqual(body, { token: 'the-token', operation: 'merge' });
+        assert.equal('environment' in body, false, 'undefined must not be sent');
+        assert.equal('target_id' in body, false, 'undefined must not be sent');
+    });
+});
+
+test('verifyReceipt(token) alone is unchanged — the widening is backward compatible', async () => {
+    for (const second of [undefined, {}]) {
+        // eslint-disable-next-line no-await-in-loop
+        await withMockFetch({ valid: true, status: 'VERIFIED_CURRENT', reason: null }, async (cap) => {
+            const c = new CodeRifts({ apiKey: 'cr_test_abc' });
+            await (second === undefined ? c.verifyReceipt('t') : c.verifyReceipt('t', second));
+            assert.deepEqual(
+                JSON.parse(cap.opts.body), { token: 't' },
+                `body must stay { token } for second arg ${JSON.stringify(second)}`,
+            );
+        });
+    }
+});
+
+/**
  * Pins VerifyReceiptResponse to the live POST /api/v1/verify-receipt body.
  * Why this exists: the type previously declared only signature fields (valid/reason/status/payload?),
  * while the endpoint returns authorization fields too. The contract drifted because nothing measured

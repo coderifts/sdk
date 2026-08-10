@@ -1,7 +1,7 @@
 /**
  * @coderifts/sdk — Main client class
  */
-import type { CodeRiftsOptions, DiffRequest, DiffResponse, PreflightCheckRequest, PreflightCheckResponse, ExplainDecisionRequest, ExplainDecisionResponse, HowToUnblockRequest, HowToUnblockResponse, ScoreMcpRequest, ScoreMcpResponse, GetLedgerRequest, GetLedgerResponse, SimulatePolicyRequest, SimulatePolicyResponse, PreflightChangeSetRequest, PreflightChangeSetBody, PreflightChangeSetResponse, AnalyzeChangeSetResponse, AuthorizeChangeSetResponse, VerifyReceiptResponse, DecisionLookupRequest, DecisionLookupResponse } from './types.js';
+import type { CodeRiftsOptions, DiffRequest, DiffResponse, PreflightCheckRequest, PreflightCheckResponse, ExplainDecisionRequest, ExplainDecisionResponse, HowToUnblockRequest, HowToUnblockResponse, ScoreMcpRequest, ScoreMcpResponse, GetLedgerRequest, GetLedgerResponse, SimulatePolicyRequest, SimulatePolicyResponse, PreflightChangeSetRequest, PreflightChangeSetBody, PreflightChangeSetResponse, AnalyzeChangeSetResponse, AuthorizeChangeSetResponse, VerifyReceiptResponse, VerifyReceiptIntendedContext, DecisionLookupRequest, DecisionLookupResponse } from './types.js';
 import { ApiError, AuthError, RateLimitError, TimeoutError } from './errors.js';
 const DEFAULT_BASE_URL = 'https://app.coderifts.com';
 const DEFAULT_TIMEOUT = 30_000;
@@ -258,12 +258,38 @@ export class CodeRifts {
     }
     // ─── 9. verifyReceipt ──────────────────────────────────────────────────
     /**
-     * Verify a CodeRifts chain receipt's signature and integrity. No API key is required — this is a
-     * public endpoint (the Authorization header is sent for consistency but ignored server-side).
+     * Verify a CodeRifts chain receipt. No API key is required — this is a public endpoint (the
+     * Authorization header is sent for consistency but ignored server-side).
      * POST /api/v1/verify-receipt.
+     *
+     * Two questions, and which one you get depends on whether you pass `intended`:
+     *
+     * - `verifyReceipt(token)` — SIGNATURE only. `valid` / `status` answer authenticity and expiry;
+     *   `currently_authorized` comes back **null**, meaning not evaluated. Null is not a pass.
+     * - `verifyReceipt(token, { operation, environment, decision_result, … })` — AUTHORIZATION.
+     *   The server binds the receipt against the stated intent and `currently_authorized` becomes a
+     *   real `true` / `false`, with `authz_status` / `authz_reason` explaining a `false`.
+     *
+     * A valid signature is not authorization: only the second form can answer "does this receipt
+     * authorize the action I am about to take?". Supply the context you are about to act under.
+     *
+     * @param token     the chain-receipt token
+     * @param intended  optional intended context; any subset of its fields may be supplied
      */
-    async verifyReceipt(token: string): Promise<VerifyReceiptResponse> {
-        return this.request<VerifyReceiptResponse>('POST', '/api/v1/verify-receipt', { token });
+    async verifyReceipt(
+        token: string,
+        intended?: VerifyReceiptIntendedContext,
+    ): Promise<VerifyReceiptResponse> {
+        // Only the fields the caller actually supplied are sent. An absent field must stay ABSENT,
+        // not null: the server treats "no context" as signature-only, and a null would otherwise be
+        // read as an intent the caller never stated.
+        const body: Record<string, unknown> = { token };
+        if (intended && typeof intended === 'object') {
+            for (const [key, value] of Object.entries(intended)) {
+                if (value !== undefined) body[key] = value;
+            }
+        }
+        return this.request<VerifyReceiptResponse>('POST', '/api/v1/verify-receipt', body);
     }
     // ─── 10. getDecisionDetails ────────────────────────────────────────────
     /**
