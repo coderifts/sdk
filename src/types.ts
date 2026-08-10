@@ -265,23 +265,123 @@ export interface ChangeSetArtifactFinding {
     error?: string;
     reason?: string;
 }
-export interface PreflightChangeSetResponse {
-    decision: Decision;
-    safe_for_agent: boolean;
-    execution_action: ExecutionAction;
-    risk_score: number;
-    breaking_changes: number;
-    patterns: string[];
-    bundle_fingerprint: string;
-    verdict_fingerprint: string;
-    chain_status?: string;
-    chain_receipt?: string;
-    artifacts: ChangeSetArtifactFinding[];
-    evidence: DecisionEvidence[];
-    decision_result?: DecisionResultEnvelope;
-    correlation_id: string;
-    meta: Record<string, unknown>;
+/* ── preflight-response.v2 (discriminated on preflight_mode) ──────────────────
+ * Mirrors the oneOf in coderifts-app/schemas/preflight-response.v2.{consumer,producer}.json.
+ *
+ * The two branches are NOT one shape with optional fields. `analyze` is informational and
+ * STRUCTURALLY omits decision / execution_action / safe_for_agent (the producer schema encodes
+ * this as `not: { anyOf: [required decision|execution_action|safe_for_agent] }`) — an analyze
+ * response never carries a decision, so the type must not offer one. Reading `res.safe_for_agent`
+ * without first narrowing on `preflight_mode` is a compile error, which is the point: the previous
+ * single rigid interface declared both as always-present and let callers branch on a decision that
+ * the analyze protocol never returns.
+ *
+ * Required-field policy: the SDK is a CONSUMER, so required-ness follows the *consumer* schema
+ * (the deliberately permissive view) — only the discriminating minimum is required; every other
+ * property either branch defines is optional. The producer additionally requires risk_score and
+ * breaking_changes today, but the consumer contract does not promise them, and over-claiming
+ * presence is the exact class of bug this change fixes.
+ *
+ * Decision / ExecutionAction / DecisionResultEnvelope are REUSED from the generated
+ * decision-result.v1 types rather than re-declared as string unions, so the enums cannot drift.
+ */
+/** Closed analysis outcome set (analyze only; derived from engine-visible state). */
+export type AnalysisOutcome =
+    | 'NO_BREAK_DETECTED'
+    | 'BREAKS_DETECTED'
+    | 'ANALYSIS_FAILED';
+/** Receipt kind on an authorize response (`operation_authorization` when a chain receipt was issued). */
+export type AuthorizeReceiptKind = 'operation_authorization' | 'NONE';
+/**
+ * `preflight_mode: 'analyze'` — informational risk only. NOT permission: it never authorizes,
+ * never grants execute, and never mints a receipt (hence the three literal-typed constants).
+ */
+export interface AnalyzeChangeSetResponse {
+    preflight_mode: 'analyze';
+    analysis_outcome: AnalysisOutcome;
+    /** Analyze never authorizes. */
+    authorization_effect: 'NONE';
+    /** Analyze never grants execute permission. */
+    may_execute: false;
+    /** Analyze never mints a receipt. */
+    receipt_kind: 'NONE';
+    /** Decision Spec major for this response (typically '2.0'). */
+    decision_spec_version: string;
+    risk_score?: number;
+    breaking_changes?: number;
+    requires_migration?: boolean;
+    evidence_quality?: string;
+    patterns?: string[];
+    pattern_sources?: unknown[];
+    bundle_fingerprint?: string;
+    verdict_fingerprint?: string;
+    artifacts?: ChangeSetArtifactFinding[];
+    evidence?: DecisionEvidence[];
+    correlation_id?: string;
+    timestamp?: string;
+    operation?: unknown;
+    decision_basis?: unknown;
+    analysis_control?: Record<string, unknown>;
+    meta?: Record<string, unknown>;
 }
+/**
+ * `preflight_mode: 'authorize'` — operation-bound may-proceed. Carries the decision, the machine
+ * directive (`execution_action`), and `safe_for_agent`; may carry a chain receipt.
+ *
+ * Note: `chain_receipt` is required by the schema *conditionally* (when
+ * `receipt_kind === 'operation_authorization'`). TypeScript cannot express that if/then, so it is
+ * typed optional here — check `receipt_kind` before relying on it.
+ */
+export interface AuthorizeChangeSetResponse {
+    preflight_mode: 'authorize';
+    decision: Decision;
+    execution_action: ExecutionAction;
+    /**
+     * DEPRECATED for control flow — branch on `execution_action`. Kept because the schema
+     * requires it on this branch.
+     */
+    safe_for_agent: boolean;
+    /** Decision Spec major for this response (typically '2.0'). */
+    decision_spec_version: string;
+    receipt_kind?: AuthorizeReceiptKind;
+    chain_receipt?: string;
+    chain_status?: string;
+    decision_result?: DecisionResultEnvelope;
+    risk_score?: number;
+    breaking_changes?: number;
+    requires_migration?: boolean;
+    evidence_quality?: string;
+    patterns?: string[];
+    pattern_sources?: unknown[];
+    bundle_fingerprint?: string;
+    verdict_fingerprint?: string;
+    artifacts?: ChangeSetArtifactFinding[];
+    evidence?: DecisionEvidence[];
+    correlation_id?: string;
+    timestamp?: string;
+    operation?: unknown;
+    decision_basis?: unknown;
+    coderifts_version?: string;
+    decision_semantic_hash?: unknown;
+    control_envelope?: Record<string, unknown>;
+    meta?: Record<string, unknown>;
+}
+/**
+ * Union of the two preflight branches, discriminated on `preflight_mode`. Narrow before reading
+ * mode-specific fields:
+ *
+ * ```ts
+ * const res = await client.preflightChangeSet(req);
+ * if (res.preflight_mode === 'authorize') {
+ *     if (res.execution_action === 'STOP') return;   // decision fields available here
+ * } else {
+ *     report(res.analysis_outcome);                  // analyze has no decision
+ * }
+ * ```
+ */
+export type PreflightChangeSetResponse =
+    | AnalyzeChangeSetResponse
+    | AuthorizeChangeSetResponse;
 export interface VerifyReceiptResponse {
     valid: boolean;
     reason: string | null;

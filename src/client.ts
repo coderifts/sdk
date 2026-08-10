@@ -1,7 +1,7 @@
 /**
  * @coderifts/sdk — Main client class
  */
-import type { CodeRiftsOptions, DiffRequest, DiffResponse, PreflightCheckRequest, PreflightCheckResponse, ExplainDecisionRequest, ExplainDecisionResponse, HowToUnblockRequest, HowToUnblockResponse, ScoreMcpRequest, ScoreMcpResponse, GetLedgerRequest, GetLedgerResponse, SimulatePolicyRequest, SimulatePolicyResponse, PreflightChangeSetRequest, PreflightChangeSetBody, PreflightChangeSetResponse, VerifyReceiptResponse, DecisionLookupRequest, DecisionLookupResponse } from './types.js';
+import type { CodeRiftsOptions, DiffRequest, DiffResponse, PreflightCheckRequest, PreflightCheckResponse, ExplainDecisionRequest, ExplainDecisionResponse, HowToUnblockRequest, HowToUnblockResponse, ScoreMcpRequest, ScoreMcpResponse, GetLedgerRequest, GetLedgerResponse, SimulatePolicyRequest, SimulatePolicyResponse, PreflightChangeSetRequest, PreflightChangeSetBody, PreflightChangeSetResponse, AnalyzeChangeSetResponse, AuthorizeChangeSetResponse, VerifyReceiptResponse, DecisionLookupRequest, DecisionLookupResponse } from './types.js';
 import { ApiError, AuthError, RateLimitError, TimeoutError } from './errors.js';
 const DEFAULT_BASE_URL = 'https://app.coderifts.com';
 const DEFAULT_TIMEOUT = 30_000;
@@ -216,6 +216,10 @@ export class CodeRifts {
      * in one call. Requires top-level `preflight_mode: 'analyze' | 'authorize'` (Decision Spec v2;
      * server returns HTTP 400 if omitted). Prefer `analyzeChangeSet` / `authorizeChangeSet` so the
      * two authorization meanings cannot be mixed. POST /api/v1/preflight.
+     *
+     * Returns the mode-discriminated union: narrow on `preflight_mode` before reading
+     * `decision` / `safe_for_agent` (authorize) or `analysis_outcome` (analyze). Call
+     * `analyzeChangeSet` / `authorizeChangeSet` instead to get an already-narrowed type.
      */
     async preflightChangeSet(req: PreflightChangeSetRequest): Promise<PreflightChangeSetResponse> {
         return this.request<PreflightChangeSetResponse>('POST', '/api/v1/preflight', req);
@@ -223,17 +227,34 @@ export class CodeRifts {
     /**
      * Risk-only preflight (`preflight_mode: 'analyze'`). Informational — not permission;
      * does not mint an operation-bound receipt. POST /api/v1/preflight.
+     *
+     * The mode is fixed by this method, so the analyze branch is returned directly — there is no
+     * `decision` / `execution_action` / `safe_for_agent` on it, by protocol.
      */
-    async analyzeChangeSet(req: PreflightChangeSetBody): Promise<PreflightChangeSetResponse> {
-        return this.preflightChangeSet({ ...req, preflight_mode: 'analyze' });
+    async analyzeChangeSet(req: PreflightChangeSetBody): Promise<AnalyzeChangeSetResponse> {
+        // Delegation to the single I/O site is kept deliberately. The mode is fixed here, so the
+        // server returns the analyze branch of the oneOf; TypeScript cannot prove that about a
+        // value it did not construct, hence the assertion (it states the protocol guarantee, it
+        // does not widen it).
+        return this.preflightChangeSet({
+            ...req,
+            preflight_mode: 'analyze',
+        }) as Promise<AnalyzeChangeSetResponse>;
     }
     /**
      * Operation-bound authorize preflight (`preflight_mode: 'authorize'`).
      * Requires a non-empty `context.operation` (e.g. merge | deploy | tool_call) — the server
      * returns HTTP 400 otherwise. May mint a signed receipt. POST /api/v1/preflight.
+     *
+     * The mode is fixed by this method, so the authorize branch is returned directly:
+     * `decision`, `execution_action` and `safe_for_agent` are present without narrowing.
      */
-    async authorizeChangeSet(req: PreflightChangeSetBody): Promise<PreflightChangeSetResponse> {
-        return this.preflightChangeSet({ ...req, preflight_mode: 'authorize' });
+    async authorizeChangeSet(req: PreflightChangeSetBody): Promise<AuthorizeChangeSetResponse> {
+        // See analyzeChangeSet: delegation preserved, assertion states the fixed-mode guarantee.
+        return this.preflightChangeSet({
+            ...req,
+            preflight_mode: 'authorize',
+        }) as Promise<AuthorizeChangeSetResponse>;
     }
     // ─── 9. verifyReceipt ──────────────────────────────────────────────────
     /**
