@@ -28,7 +28,8 @@
     "build:markers": "node scripts/write-dist-type-markers.mjs",
     "build": "npm run clean && npm run build:cjs && npm run build:esm && npm run build:markers",
     "pretest": "npm run build",
-    "test": "node --test test/*.test.js",
+    "test:types": "tsc -p tsconfig.typetest.json",
+    "test": "npm run test:types && node --test test/*.test.js",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
