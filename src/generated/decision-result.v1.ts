@@ -400,6 +400,41 @@ export interface DecisionResultEnvelope {
       }[]
     | null;
   /**
+   * Additive. GOVERNANCE detector detail rows (src/change-patterns.js) — the array pattern_sources[].detected_pattern_indices indexes into, so those indices resolve against a declared …
+   */
+  detected_patterns?:
+    | {
+        /**
+         * Governance pattern name; appears in patterns when both are carried.
+         */
+        name: string;
+        /**
+         * Row severity from the pattern catalog (observed set: CRITICAL, HIGH, MEDIUM). NOT a closed control enum — branch on execution_action, never on this.
+         */
+        severity: string;
+        /**
+         * What the detector matched. Untrusted free text.
+         */
+        description: string;
+        /**
+         * What breaks for a consumer if this ships. Untrusted free text.
+         */
+        consequence: string;
+        /**
+         * Contract path this row is about. Empty string when the detector had none — the key is always emitted.
+         */
+        affected_path: string;
+        /**
+         * Field within affected_path. Empty string when the detector had none — the key is always emitted.
+         */
+        affected_field: string;
+        /**
+         * Optional; currently set on ENUM_NARROWING only. Request-side narrowing is agent-breaking (threaded so safe_for_agent can distinguish it). Absent when the detector did not set it.
+         */
+        side?: 'request' | 'response';
+      }[]
+    | null;
+  /**
    * Additive (ID637 v5 slice 4). SERVER-authored change-set completeness claim level. Never caller-authored; never a boolean completeness:true. ATTESTED_UNVERIFIED is NOT a proof (defe…
    */
   completeness_mode?:
@@ -434,6 +469,10 @@ export interface DecisionResultEnvelope {
    * Additive (ID637). What would upgrade a non-terminal mode (e.g. webhook_full_file_list for ATTESTED_UNVERIFIED). null when not applicable.
    */
   completeness_expected_channel?: string | null;
+  /**
+   * Additive (RT-P-20). SERVER-authored: whether fingerprint rebind is EXPECTED for this verdict at the merge/deploy gate. true = case-split hard-fails expected_but_absent / expected_b…
+   */
+  fingerprint_binding_expected?: boolean | null;
   /**
    * Additive. Branchable control core (type/reason_code/recheck_required/choices ids) frozen at issuance without receipt-authz overlay. null when not supplied. Never fabricate type=non…
    */
