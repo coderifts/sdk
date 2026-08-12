@@ -369,8 +369,11 @@ export interface VerifyReceiptResponse {
     valid: boolean;
     reason: string | null;
     status: ReceiptStatus;
-    /** Always present on the live endpoint (measured with and without intent context). */
-    payload: Record<string, unknown>;
+    /**
+     * Signed receipt payload when the signature is authentic. Omitted when unverifiable
+     * (route omits the key; runtime may be undefined). Present on successful authentic verifies.
+     */
+    payload?: Record<string, unknown>;
     /**
      * Whether this receipt is authorized right now for the evaluated context.
      * `true` / `false` are answers; `null` means authorization could not be evaluated
@@ -378,6 +381,11 @@ export interface VerifyReceiptResponse {
      */
     currently_authorized: boolean | null;
     authz_note: string;
+    /**
+     * Request/trace correlation id. Always present: the verify-receipt route sets it via
+     * buildVerifyReceiptResponse from req.correlationId (ID828) — route-owned, not dependent
+     * on the global correlationId middleware body injection. Matches X-Correlation-ID when middleware runs.
+     */
     correlation_id: string;
     /** Present when intent context (e.g. operation/environment) was supplied on the request. */
     authz_status?: string;
