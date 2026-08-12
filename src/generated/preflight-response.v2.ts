@@ -167,7 +167,7 @@ export interface AuthorizeChangeSetResponse {
   /**
    * operation_authorization when a chain receipt was issued; NONE if signer unconfigured.
    */
-  receipt_kind?: 'operation_authorization' | 'NONE';
+  receipt_kind: 'operation_authorization' | 'NONE';
   chain_receipt?: string;
   chain_status?: string;
   /**
