@@ -502,6 +502,50 @@ export interface DecisionResultEnvelope {
       | 're_preflight_deploy'
     )[];
   } | null;
+  /**
+   * Additive (ID850 v1). BLOCK-only safe-path-forward block: aggregated from remediation-taxonomy required_changes, REEVALUATE/INPUT_CHANGED next-preflight, and human_review escalation…
+   */
+  remediation_transaction?: {
+    /**
+     * Per-change remediations from remediation-taxonomy.buildRemediations (reused, not reinvented).
+     */
+    required_changes: {
+      [k: string]: any;
+    }[];
+    resubmission: {
+      /**
+       * Same reference_fingerprint material → the same BLOCK (a fact within fingerprint_profile coverage).
+       */
+      unchanged_input: 'deterministic_block';
+      /**
+       * Changed input is eligible for a fresh preflight — NOT authorization.
+       */
+      modified_input: 'preflight_required';
+      reference_fingerprint: string;
+      /**
+       * Honest name of what reference_fingerprint covers (e.g. crbundle.v1 or verdict_fp_v1). deterministic_block binds only to that coverage.
+       */
+      fingerprint_profile: string;
+      /**
+       * Explicit: modified_input never grants authorization; execution_action remains STOP until a new authorize receipt.
+       */
+      modified_is_not_permission?: true;
+    };
+    /**
+     * Aligned with REEVALUATE + precondition:INPUT_CHANGED on the BLOCK next_actions path.
+     */
+    next_preflight_required: true;
+    /**
+     * Precise re-preflight scope derived from affected targets/artifacts — not the whole task.
+     */
+    recheck_scope: {
+      [k: string]: any;
+    };
+    escalation: {
+      path: 'human_review';
+      when: 'changes_infeasible_or_disputed';
+    };
+  } | null;
 }
 /**
  * This interface was referenced by `DecisionResultEnvelope`'s JSON-Schema
