@@ -73,6 +73,91 @@ export interface AnalyzeChangeSetResponse {
   analysis_control?: {
     [k: string]: unknown;
   };
+  /**
+   * GOVERNANCE detector detail rows (src/change-patterns.js; validated by decision-spec-fields.js). Row shape measured live: name, severity, description, consequence, affected_path, af…
+   */
+  detected_patterns?: {
+    /**
+     * Governance pattern name; appears in patterns when both are carried.
+     */
+    name: string;
+    /**
+     * Row severity from the pattern catalog (observed set: CRITICAL, HIGH, MEDIUM). NOT a closed control enum — branch on execution_action, never on this.
+     */
+    severity: string;
+    /**
+     * What the detector matched. Untrusted free text.
+     */
+    description: string;
+    /**
+     * What breaks for a consumer if this ships. Untrusted free text.
+     */
+    consequence: string;
+    /**
+     * Contract path this row is about. Empty string when the detector had none — the key is always emitted.
+     */
+    affected_path: string;
+    /**
+     * Field within affected_path. Empty string when the detector had none — the key is always emitted.
+     */
+    affected_field: string;
+    /**
+     * Optional; currently set on ENUM_NARROWING only. Request-side narrowing is agent-breaking (threaded so safe_for_agent can distinguish it). Absent when the detector did not set it.
+     */
+    side?: 'request' | 'response';
+  }[];
+  /**
+   * Per-change IR/detail rows from the engine (src/blast/diff-to-change.js maps these). Measured row keys: type, path, method, field, severity, description. Distinct from breaking_chan…
+   */
+  breaking_changes_details?: {
+    /**
+     * Change kind / IR type code (e.g. response.body.property.remove).
+     */
+    type?: string;
+    path?: string;
+    method?: string;
+    field?: string;
+    severity?: string;
+    description?: string;
+    [k: string]: unknown;
+  }[];
+  /**
+   * Bundle severity axes (src/change-set.js severity_summary). Distinct axes, not contradictory. Measured keys: diff_severity, governance_severity, policy_effect, note.
+   */
+  severity_summary?: {
+    /**
+     * Structural size of the schema change.
+     */
+    diff_severity?: string;
+    /**
+     * How the rule engine rates the change.
+     */
+    governance_severity?: string;
+    /**
+     * Resulting decision effect label.
+     */
+    policy_effect?: string;
+    note?: string;
+  };
+  /**
+   * Tier-2 analysis mirror (src/response-envelope.js buildAnalysisTier / attachControlSurface). Dual-write of flat analysis fields present on the verdict plus remediations[]. ANALYSIS_…
+   */
+  analysis?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable report tier (src/response-envelope.js buildHumanReport / analyze v2 stub). Measured keys: summary, breaking_highlights, suggestions, next_steps_prose.
+   */
+  human_report?: {
+    summary?: string;
+    breaking_highlights?: unknown[];
+    suggestions?: unknown[];
+    next_steps_prose?: string;
+  };
+  /**
+   * Gateway/request correlation id (attachControlSurface). Set when correlation_id is present; alias of the request id. Distinct from decision_correlation_id on authorize when the enve…
+   */
+  request_correlation_id?: string;
 }
 export interface AuthorizeChangeSetResponse {
   preflight_mode: 'authorize';
@@ -115,6 +200,95 @@ export interface AuthorizeChangeSetResponse {
   control_envelope?: {
     [k: string]: unknown;
   };
+  /**
+   * GOVERNANCE detector detail rows (src/change-patterns.js; validated by decision-spec-fields.js). Row shape measured live: name, severity, description, consequence, affected_path, af…
+   */
+  detected_patterns?: {
+    /**
+     * Governance pattern name; appears in patterns when both are carried.
+     */
+    name: string;
+    /**
+     * Row severity from the pattern catalog (observed set: CRITICAL, HIGH, MEDIUM). NOT a closed control enum — branch on execution_action, never on this.
+     */
+    severity: string;
+    /**
+     * What the detector matched. Untrusted free text.
+     */
+    description: string;
+    /**
+     * What breaks for a consumer if this ships. Untrusted free text.
+     */
+    consequence: string;
+    /**
+     * Contract path this row is about. Empty string when the detector had none — the key is always emitted.
+     */
+    affected_path: string;
+    /**
+     * Field within affected_path. Empty string when the detector had none — the key is always emitted.
+     */
+    affected_field: string;
+    /**
+     * Optional; currently set on ENUM_NARROWING only. Request-side narrowing is agent-breaking (threaded so safe_for_agent can distinguish it). Absent when the detector did not set it.
+     */
+    side?: 'request' | 'response';
+  }[];
+  /**
+   * Per-change IR/detail rows from the engine (src/blast/diff-to-change.js maps these). Measured row keys: type, path, method, field, severity, description. Distinct from breaking_chan…
+   */
+  breaking_changes_details?: {
+    /**
+     * Change kind / IR type code (e.g. response.body.property.remove).
+     */
+    type?: string;
+    path?: string;
+    method?: string;
+    field?: string;
+    severity?: string;
+    description?: string;
+    [k: string]: unknown;
+  }[];
+  /**
+   * Bundle severity axes (src/change-set.js severity_summary). Distinct axes, not contradictory. Measured keys: diff_severity, governance_severity, policy_effect, note.
+   */
+  severity_summary?: {
+    /**
+     * Structural size of the schema change.
+     */
+    diff_severity?: string;
+    /**
+     * How the rule engine rates the change.
+     */
+    governance_severity?: string;
+    /**
+     * Resulting decision effect label.
+     */
+    policy_effect?: string;
+    note?: string;
+  };
+  /**
+   * Tier-2 analysis mirror (src/response-envelope.js buildAnalysisTier / attachControlSurface). Dual-write of flat analysis fields present on the verdict plus remediations[]. ANALYSIS_…
+   */
+  analysis?: {
+    [k: string]: unknown;
+  };
+  /**
+   * Human-readable report tier (src/response-envelope.js buildHumanReport / analyze v2 stub). Measured keys: summary, breaking_highlights, suggestions, next_steps_prose.
+   */
+  human_report?: {
+    summary?: string;
+    breaking_highlights?: unknown[];
+    suggestions?: unknown[];
+    next_steps_prose?: string;
+  };
+  /**
+   * Gateway/request correlation id (attachControlSurface). Set when correlation_id is present; alias of the request id. Distinct from decision_correlation_id on authorize when the enve…
+   */
+  request_correlation_id?: string;
+  /**
+   * Decision envelope correlation id (attachControlSurface). Present on authorize when decision_result.correlation_id is set. Distinct from request_correlation_id / correlation_id (req…
+   */
+  decision_correlation_id?: string;
 }
 
 // ── Public SDK aliases (stable names; derived from the generated branches) ──────────────────
