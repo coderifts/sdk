@@ -221,7 +221,7 @@ export type ReceiptStatus =
     | 'REGISTRY_UNREACHABLE';
 export interface Artifact {
     id: string;
-    type: 'openapi' | 'graphql' | 'grpc' | 'asyncapi' | 'mcp_manifest';
+    type: 'openapi' | 'graphql' | 'grpc' | 'asyncapi' | 'mcp_manifest' | 'agent_tools';
     before: string;
     after: string;
 }
