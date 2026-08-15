@@ -329,7 +329,7 @@ export interface DecisionResultEnvelope {
    */
   decision_spec_version?: string | null;
   /**
-   * Additive v1.1. Intended audience of the decision. NOT-YET-COVERED: no producer; always null this round.
+   * Additive v1.1. Intended audience of the decision: server-derived authenticated requester identity ('v:' + sha256(utf8(apiKey)).hex.slice(0, 12) via velocity-monitor.decisionAudienc…
    */
   audience?: string | null;
   /**

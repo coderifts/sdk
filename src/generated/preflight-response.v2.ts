@@ -161,8 +161,17 @@ export interface AnalyzeChangeSetResponse {
 }
 export interface AuthorizeChangeSetResponse {
   preflight_mode: 'authorize';
+  /**
+   * Compatibility mirror of control_envelope.decision (same value). Prefer control_envelope for branching; use decision as explanation only.
+   */
   decision: Decision;
+  /**
+   * Compatibility mirror of control_envelope.execution_action (same value). Canonical branch key; unrecognised values are not permission (fail closed).
+   */
   execution_action: ExecutionAction;
+  /**
+   * Compatibility mirror of control_envelope.safe_for_agent (same value). Not a branch key — do not branch on safe_for_agent (use execution_action).
+   */
   safe_for_agent: boolean;
   /**
    * operation_authorization when a chain receipt was issued; NONE if signer unconfigured.
@@ -171,7 +180,7 @@ export interface AuthorizeChangeSetResponse {
   chain_receipt?: string;
   chain_status?: string;
   /**
-   * decision-result.v1 envelope when issuance path produced one (validate with decision-result.v1.producer.json).
+   * Proof/receipt side: decision-result.v1 envelope when the issuance path produced one (validate with decision-result.v1.producer.json). Carries fingerprints, audience, receipt / deci…
    */
   decision_result?: DecisionResultEnvelope;
   /**
@@ -197,6 +206,9 @@ export interface AuthorizeChangeSetResponse {
   decision_basis?: unknown;
   coderifts_version?: string;
   decision_semantic_hash?: unknown;
+  /**
+   * Branch source (control/1.0). Machine-control surface from attachControlSurface / buildControlEnvelope. Agents and @coderifts/agent-guard branch on control_envelope.execution_action…
+   */
   control_envelope?: {
     [k: string]: unknown;
   };
