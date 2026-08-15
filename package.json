@@ -1,6 +1,6 @@
 {
   "name": "@coderifts/sdk",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "description": "Agent Governance SDK — validate API changes before tool invocations. TypeScript client for the CodeRifts API.",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
