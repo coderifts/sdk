@@ -158,6 +158,14 @@ export interface AnalyzeChangeSetResponse {
    * Gateway/request correlation id (attachControlSurface). Set when correlation_id is present; alias of the request id. Distinct from decision_correlation_id on authorize when the enve…
    */
   request_correlation_id?: string;
+  /**
+   * Fingerprint-bound scorerVersion() (observation; not permission).
+   */
+  scorer_version?: string | null;
+  calibration_version?: string | null;
+  policy_pin_status?: {
+    [k: string]: unknown;
+  } | null;
 }
 export interface AuthorizeChangeSetResponse {
   preflight_mode: 'authorize';
@@ -301,6 +309,20 @@ export interface AuthorizeChangeSetResponse {
    * Decision envelope correlation id (attachControlSurface). Present on authorize when decision_result.correlation_id is set. Distinct from request_correlation_id / correlation_id (req…
    */
   decision_correlation_id?: string;
+  /**
+   * Fingerprint-bound scorerVersion() (same as decision_result.scorer_version / FP preimage).
+   */
+  scorer_version?: string | null;
+  /**
+   * Calibration model version when set; null until a calibrated model ships.
+   */
+  calibration_version?: string | null;
+  /**
+   * policy_pin observation (898). match null=no pin; false=drift warning (non-blocking).
+   */
+  policy_pin_status?: {
+    [k: string]: unknown;
+  } | null;
 }
 
 // ── Public SDK aliases (stable names; derived from the generated branches) ──────────────────

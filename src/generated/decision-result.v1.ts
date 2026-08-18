@@ -38,7 +38,7 @@ export interface DecisionResultEnvelope {
    */
   evaluated_at: string;
   /**
-   * Hard validity bound, UTC Z. Producer default: evaluated_at + 15 minutes until an explicit TTL policy ships. MUST be later than evaluated_at (consumer-checked). Consumers MUST NOT a…
+   * Hard validity bound (authorization time-window), UTC Z. Producer: evaluated_at + per-operation TTL (closed map: tool_call=15m; merge/deploy/publish=4h; unknown/null=15m fail-safe s…
    */
   expires_at: string;
   summary: string;
@@ -545,6 +545,20 @@ export interface DecisionResultEnvelope {
       path: 'human_review';
       when: 'changes_infeasible_or_disputed';
     };
+  } | null;
+  /**
+   * User-visible scorer identity bound into the verdict fingerprint preimage (core/verdict-fingerprint scorerVersion = getPatternConfigHash():OMEGA_MODE). Single source — same string a…
+   */
+  scorer_version?: string | null;
+  /**
+   * Roadmap 898: optional policy_pin observation. match=true pin equals current; match=false real drift (non-blocking POLICY_PIN_DRIFT warning); match=null no pin set. Does not freeze …
+   */
+  policy_pin_status?: {
+    pinned?: string | null;
+    current?: string;
+    match?: boolean | null;
+    note?: string;
+    scope?: string;
   } | null;
 }
 /**
