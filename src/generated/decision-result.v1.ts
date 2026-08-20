@@ -333,11 +333,11 @@ export interface DecisionResultEnvelope {
    */
   audience?: string | null;
   /**
-   * Additive v1.1. Hash of the caller's authorization scope. NOT-YET-COVERED: no producer; always null this round.
+   * Additive v1.1. Hash of the caller's authorization scope. No producer yet; null until org/installation scope is decided (ID747). Producer awaits the org-scope decision. Never invent…
    */
   authorization_scope_hash?: string | null;
   /**
-   * Additive v1.1. Build/commit id of the engine. NOT-YET-COVERED: no build-id producer; always null this round.
+   * Additive v1.1. Build/commit id of the engine. No producer yet; null until a build-id env/source is wired. Never invented.
    */
   engine_build_id?: string | null;
   /**
@@ -345,7 +345,7 @@ export interface DecisionResultEnvelope {
    */
   commit_sha?: string | null;
   /**
-   * Additive v1.1. Deployment identifier. NOT-YET-COVERED: no producer; always null this round.
+   * Additive v1.1. Deployment identifier. No producer on the decision_result envelope; null until that producer is wired. Never invented.
    */
   deployment_id?: string | null;
   /**
