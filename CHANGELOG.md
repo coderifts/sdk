@@ -2,6 +2,17 @@
 
 All notable changes to `@coderifts/sdk` are documented here.
 
+## [3.2.0]
+
+Additive — optional `base` / `head` (PR/commit SHAs) on the typed preflight
+context and verify-receipt intended-context. Existing callers unchanged.
+
+### Added
+- **`PreflightChangeSetContext.base?` / `.head?`** — source SHAs folded into
+  the change-set fingerprint / signed envelope when supplied.
+- **`VerifyReceiptIntendedContext.base?` / `.head?`** — intended source SHAs
+  for signed-wins authorization (`head_mismatch` / `base_mismatch`).
+
 ## [2.0.0]
 
 **Breaking** — Decision Spec v2 alignment. The live server requires top-level

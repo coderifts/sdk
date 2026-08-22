@@ -232,6 +232,10 @@ export interface PreflightChangeSetContext {
     branch?: string;
     pull_request?: string | number;
     policy_profile?: string;
+    /** PR/commit SHA the change set was computed against. Optional — not every preflight is PR-scoped. */
+    base?: string;
+    /** PR/commit SHA of the proposed head. Optional — not every preflight is PR-scoped. */
+    head?: string;
 }
 /**
  * Decision Spec v2 preflight mode (top-level; required by POST /api/v1/preflight).
@@ -356,6 +360,10 @@ export interface VerifyReceiptIntendedContext {
     branch?: string;
     /** Place binding: pull request the receipt must be bound to. */
     pull_request?: string | number;
+    /** Source binding: intended base commit/ref SHA the receipt must match. */
+    base?: string;
+    /** Source binding: intended head commit/ref SHA the receipt must match. */
+    head?: string;
     /**
      * The body_hash-bound decision envelope. Required for a meaningful scope evaluation — with
      * intent fields but no envelope the server fails closed (`currently_authorized: false`) rather

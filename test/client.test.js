@@ -68,6 +68,25 @@ test('authorizeChangeSet injects preflight_mode authorize (requires context.oper
     });
 });
 
+test('preflightChangeSet sends optional context.base/head (PR/commit SHAs)', async () => {
+    await withMockFetch({ decision: 'ALLOW', execution_action: 'CONTINUE' }, async (cap) => {
+        const c = new CodeRifts({ apiKey: 'cr_test_abc' });
+        await c.preflightChangeSet({
+            preflight_mode: 'authorize',
+            artifacts: [{ id: 'api', type: 'openapi', before: 'a', after: 'b' }],
+            context: {
+                operation: 'merge',
+                repository: 'acme/api',
+                base: 'base-sha-aaa',
+                head: 'head-sha-bbb',
+            },
+        });
+        const body = JSON.parse(cap.opts.body);
+        assert.equal(body.context.base, 'base-sha-aaa');
+        assert.equal(body.context.head, 'head-sha-bbb');
+    });
+});
+
 test('verifyReceipt -> POST /api/v1/verify-receipt with { token }', async () => {
     await withMockFetch({ valid: true, status: 'VERIFIED_CURRENT', reason: null }, async (cap) => {
         const c = new CodeRifts({ apiKey: 'cr_test_abc' });
@@ -111,6 +130,8 @@ test('verifyReceipt carries every field the REST endpoint reads', async () => {
             repository: 'owner/repo',
             branch: 'main',
             pull_request: 42,
+            base: 'base-sha-aaa',
+            head: 'head-sha-bbb',
             decision_result: { spec_version: 'decision-result.v1.1' },
             indices: { revoked: [] },
         };

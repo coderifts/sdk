@@ -21,6 +21,8 @@ import type {
     AnalyzeChangeSetResponse,
     AuthorizeChangeSetResponse,
     PreflightChangeSetResponse,
+    PreflightChangeSetContext,
+    VerifyReceiptIntendedContext,
 } from '../../src/types.js';
 
 /* ── 1. The union narrows on preflight_mode ─────────────────────────────────────────────── */
@@ -103,6 +105,7 @@ export const minimalAuthorize: AuthorizeChangeSetResponse = {
     decision: 'ALLOW',
     execution_action: 'CONTINUE',
     safe_for_agent: true,
+    receipt_kind: 'NONE',
     decision_spec_version: '2.0',
 };
 
@@ -156,3 +159,29 @@ export function branchesAreClosed(): void {
     };
     void bad;
 }
+
+/* ── 9. P0-5 base/head is typed on preflight context and verify intended-context ──────── */
+
+export function preflightContextTypesBaseHead(ctx: PreflightChangeSetContext): string {
+    const base: string | undefined = ctx.base;
+    const head: string | undefined = ctx.head;
+    return `${base ?? ''}${head ?? ''}`;
+}
+
+export function verifyIntendedContextTypesBaseHead(ctx: VerifyReceiptIntendedContext): string {
+    const base: string | undefined = ctx.base;
+    const head: string | undefined = ctx.head;
+    return `${base ?? ''}${head ?? ''}`;
+}
+
+export const preflightContextWithSource: PreflightChangeSetContext = {
+    operation: 'merge',
+    base: 'base-sha',
+    head: 'head-sha',
+};
+
+export const verifyIntendedWithSource: VerifyReceiptIntendedContext = {
+    operation: 'merge',
+    base: 'base-sha',
+    head: 'head-sha',
+};
