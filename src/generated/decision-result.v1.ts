@@ -484,6 +484,23 @@ export interface DecisionResultEnvelope {
     proven_at?: string | null;
   } | null;
   /**
+   * Additive (ID963). Authority statement about WHO was authorized: the existing audience (key identity) plus whether the mint happened under a tenant with proven repo control. Covered…
+   */
+  authority?: {
+    /**
+     * Copy of envelope.audience ('v:' + sha256(utf8(apiKey)).hex.slice(0, 12) or null). Identifies the KEY, not the tenant.
+     */
+    audience: string | null;
+    /**
+     * bound iff a proven tenant↔repo binding existed for (tenant, context.repository) at decision time. unbound otherwise (no repo, or unproven).
+     */
+    tenant_scope: 'bound' | 'unbound';
+    /**
+     * ISO-8601 UTC timestamp of the proven binding. Present only when tenant_scope is bound. null/absent when unbound.
+     */
+    binding_proven_at?: string | null;
+  } | null;
+  /**
    * Additive (RT-P-20). SERVER-authored: whether fingerprint rebind is EXPECTED for this verdict at the merge/deploy gate. true = case-split hard-fails expected_but_absent / expected_b…
    */
   fingerprint_binding_expected?: boolean | null;
