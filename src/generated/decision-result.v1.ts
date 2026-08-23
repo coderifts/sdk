@@ -560,6 +560,17 @@ export interface DecisionResultEnvelope {
     note?: string;
     scope?: string;
   } | null;
+  /**
+   * ID27 additive COUNTS (not a score). Pure function of the change-set + request graphs. Not in the verdict_fingerprint preimage (before_norm+after_norm+policy+scorer_version). Zeros …
+   */
+  blast_radius?: {
+    endpoints: number;
+    fields: number;
+    params: number;
+    consumers_declared: number;
+    consumers_observed: number;
+    graph_source: 'none' | 'declared' | 'observed' | 'declared+observed';
+  };
 }
 /**
  * This interface was referenced by `DecisionResultEnvelope`'s JSON-Schema

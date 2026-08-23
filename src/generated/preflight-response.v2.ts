@@ -166,6 +166,17 @@ export interface AnalyzeChangeSetResponse {
   policy_pin_status?: {
     [k: string]: unknown;
   } | null;
+  /**
+   * ID27 additive COUNTS (not a score). Pure function of the change-set + request graphs. Not in the verdict_fingerprint preimage.
+   */
+  blast_radius?: {
+    endpoints: number;
+    fields: number;
+    params: number;
+    consumers_declared: number;
+    consumers_observed: number;
+    graph_source: 'none' | 'declared' | 'observed' | 'declared+observed';
+  };
 }
 export interface AuthorizeChangeSetResponse {
   preflight_mode: 'authorize';
@@ -323,6 +334,17 @@ export interface AuthorizeChangeSetResponse {
   policy_pin_status?: {
     [k: string]: unknown;
   } | null;
+  /**
+   * ID27 additive COUNTS (not a score). Pure function of the change-set + request graphs. Not in the verdict_fingerprint preimage.
+   */
+  blast_radius?: {
+    endpoints: number;
+    fields: number;
+    params: number;
+    consumers_declared: number;
+    consumers_observed: number;
+    graph_source: 'none' | 'declared' | 'observed' | 'declared+observed';
+  };
 }
 
 // ── Public SDK aliases (stable names; derived from the generated branches) ──────────────────
