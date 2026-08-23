@@ -435,11 +435,12 @@ export interface DecisionResultEnvelope {
       }[]
     | null;
   /**
-   * Additive (ID637 v5 slice 4). SERVER-authored change-set completeness claim level. Never caller-authored; never a boolean completeness:true. ATTESTED_UNVERIFIED is NOT a proof (defe…
+   * Additive (ID637 v5 slice 4; ID811 BOUND_ATTESTED). SERVER-authored change-set completeness claim level. Never caller-authored; never a boolean completeness:true. ATTESTED_UNVERIFIE…
    */
   completeness_mode?:
     | 'UNBOUND'
     | 'ATTESTED_UNVERIFIED'
+    | 'BOUND_ATTESTED'
     | 'SERVER_DERIVED'
     | 'CROSS_VERIFIED'
     | 'DIVERGED'
@@ -469,6 +470,19 @@ export interface DecisionResultEnvelope {
    * Additive (ID637). What would upgrade a non-terminal mode (e.g. webhook_full_file_list for ATTESTED_UNVERIFIED). null when not applicable.
    */
   completeness_expected_channel?: string | null;
+  /**
+   * Additive (ID811). Proven key↔repo binding for the calling tenant. Context, not verdict input: does not enter the verdict_fingerprint preimage. proven:true only after POST /api/v1/b…
+   */
+  binding?: {
+    /**
+     * true only when a challenge-response bind was recorded for this tenant×repository. Never caller-authored.
+     */
+    proven?: boolean;
+    /**
+     * ISO-8601 UTC timestamp when the tenant↔repo binding was proven. null when proven is absent.
+     */
+    proven_at?: string | null;
+  } | null;
   /**
    * Additive (RT-P-20). SERVER-authored: whether fingerprint rebind is EXPECTED for this verdict at the merge/deploy gate. true = case-split hard-fails expected_but_absent / expected_b…
    */
