@@ -5,33 +5,52 @@ Agent Governance SDK for the [CodeRifts](https://coderifts.com) API. Validate AP
 ## Installation
 
 ```bash
-npm install @coderifts/sdk@1.0.1
+npm install @coderifts/sdk
 ```
 
+Current package: **3.2.0**.
+
 ## Quick Start
+
+`authorizeChangeSet` is the operation-bound entry point: it fixes
+`preflight_mode: 'authorize'`, so `decision`, `execution_action` and `safe_for_agent`
+are present without narrowing, and it may mint a signed receipt.
 
 ```typescript
 import { CodeRifts } from '@coderifts/sdk';
 
 const client = new CodeRifts({ apiKey: 'cr_live_...' });
 
-const result = await client.preflightCheck({
-  tool_name: 'get_refund_status',
-  old_spec: oldYaml,
-  new_spec: newYaml,
+const result = await client.authorizeChangeSet({
+  artifacts: [
+    { id: 'api', type: 'openapi', before: oldYaml, after: newYaml },
+  ],
+  context: { operation: 'merge' },   // required on authorize (HTTP 400 without it)
 });
 
-if (!result.safe) {
-  console.error('Blocked:', result.decision, result.reflex_triggers);
+// Branch on execution_action only. It is a closed set:
+// CONTINUE | CONTINUE_WITH_MONITORING | REQUEST_APPROVAL | STOP.
+// Anything unrecognised is not permission — fail closed.
+if (result.execution_action !== 'CONTINUE') {
+  console.error('Halted:', result.execution_action, result.decision);
   process.exit(1);
 }
 ```
 
+For risk inspection that is explicitly **not** permission, use `analyzeChangeSet`: the
+analyze branch carries no `decision` / `execution_action` / `safe_for_agent` by protocol.
+
 ## Methods
 
-### `preflightCheck(options)`
+### `preflightCheck(options)` — legacy single-spec path
 
-Check whether it is safe to proceed with a tool invocation.
+Still shipped and supported. It takes one `old_spec` / `new_spec` pair plus a `tool_name`
+and calls `POST /api/v1/agent/preflight`.
+
+For new integrations prefer `authorizeChangeSet` / `analyzeChangeSet`: they take a
+multi-artifact change set (OpenAPI, GraphQL, gRPC, AsyncAPI, MCP manifest) in one call and
+carry the Decision Spec v2 mode discriminator, so risk inspection cannot be mistaken for
+permission.
 
 ```typescript
 const result = await client.preflightCheck({
