@@ -183,7 +183,10 @@ const res = await client.preflightChangeSet({
 ### `verifyReceipt(token)`
 
 Verify a chain receipt's signature and integrity. **No API key required** (public endpoint).
-`POST /api/v1/verify-receipt`.
+`POST /api/v1/verify-receipt`. Expiry uses 30s clock-skew leeway
+(`CLOCK_SKEW_LEEWAY_MS`); 0s for destructive operations in production when the
+intended context declares them. The SDK does not compare expiry locally — the
+server does. Unknown intended-context keys are dropped by the REST route (not 400).
 
 ```typescript
 const v = await client.verifyReceipt(receiptToken);

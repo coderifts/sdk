@@ -264,8 +264,10 @@ export class CodeRifts {
      *
      * Two questions, and which one you get depends on whether you pass `intended`:
      *
-     * - `verifyReceipt(token)` — SIGNATURE only. `valid` / `status` answer authenticity and expiry;
-     *   `currently_authorized` comes back **null**, meaning not evaluated. Null is not a pass.
+     * - `verifyReceipt(token)` — SIGNATURE only. `valid` / `status` answer authenticity and expiry
+     *   (30s clock-skew leeway on expiry; 0s for destructive operations in production when the
+     *   intended context declares them). `currently_authorized` comes back **null**, meaning not
+     *   evaluated. Null is not a pass.
      * - `verifyReceipt(token, { operation, environment, decision_result, … })` — AUTHORIZATION.
      *   The server binds the receipt against the stated intent and `currently_authorized` becomes a
      *   real `true` / `false`, with `authz_status` / `authz_reason` explaining a `false`.

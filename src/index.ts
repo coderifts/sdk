@@ -17,6 +17,14 @@ export { CodeRifts } from './client.js';
 export { CodeRiftsError, ApiError, TimeoutError, RateLimitError, AuthError } from './errors.js';
 export { readDecision } from './decision.js';
 export type { ReadDecisionResult } from './decision.js';
+export {
+    CLOCK_SKEW_LEEWAY_MS,
+    expiryLeewayMs,
+    declaresDestructiveProduction,
+    isReceiptExpired,
+    isIssuedInFuture,
+} from './leeway.js';
+export type { ExpiryLeewayContext } from './leeway.js';
 export type {
     CodeRiftsOptions,
     ApiErrorBody,

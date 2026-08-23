@@ -165,7 +165,10 @@ export function branchesAreClosed(): void {
 export function preflightContextTypesBaseHead(ctx: PreflightChangeSetContext): string {
     const base: string | undefined = ctx.base;
     const head: string | undefined = ctx.head;
-    return `${base ?? ''}${head ?? ''}`;
+    const target: string | undefined = ctx.target_id;
+    const fp: string | undefined = ctx.fingerprint;
+    const aud: string | undefined = ctx.audience;
+    return `${base ?? ''}${head ?? ''}${target ?? ''}${fp ?? ''}${aud ?? ''}`;
 }
 
 export function verifyIntendedContextTypesBaseHead(ctx: VerifyReceiptIntendedContext): string {

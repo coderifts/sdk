@@ -236,6 +236,12 @@ export interface PreflightChangeSetContext {
     base?: string;
     /** PR/commit SHA of the proposed head. Optional — not every preflight is PR-scoped. */
     head?: string;
+    /** IntentContext parity (REST/MCP accept; not folded into the bundle fingerprint). */
+    target_id?: string;
+    /** IntentContext parity (REST/MCP accept; not folded into the bundle fingerprint). */
+    fingerprint?: string;
+    /** IntentContext parity (REST/MCP accept; server-derived audience still wins on the envelope). */
+    audience?: string;
 }
 /**
  * Decision Spec v2 preflight mode (top-level; required by POST /api/v1/preflight).
@@ -342,6 +348,11 @@ export type PreflightChangeSetResponse = GeneratedPreflightChangeSetResponse;
  *
  * Every field is optional and any subset may be sent; the server evaluates what it was given.
  * This list mirrors exactly what `POST /api/v1/verify-receipt` reads — nothing here is invented.
+ *
+ * Expiry (server): 30s clock-skew leeway on `expires_at` (`CLOCK_SKEW_LEEWAY_MS`); 0s for
+ * destructive operations in production when the intended context declares them. IntentContext
+ * has `environment` but no `destructive` / `operation_class` — the 0s branch is not guessed
+ * from operation labels. Unknown body keys are dropped by the REST route (not 400).
  */
 export interface VerifyReceiptIntendedContext {
     /** Operation the receipt must authorize (e.g. merge | deploy | publish | tool_call). */

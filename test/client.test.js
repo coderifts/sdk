@@ -68,6 +68,39 @@ test('authorizeChangeSet injects preflight_mode authorize (requires context.oper
     });
 });
 
+test('preflightChangeSet sends the full 10-field IntentContext (additive)', async () => {
+    await withMockFetch({ decision: 'ALLOW', execution_action: 'CONTINUE' }, async (cap) => {
+        const c = new CodeRifts({ apiKey: 'cr_test_abc' });
+        await c.preflightChangeSet({
+            preflight_mode: 'authorize',
+            artifacts: [{ id: 'api', type: 'openapi', before: 'a', after: 'b' }],
+            context: {
+                operation: 'merge',
+                target_id: 'svc-1',
+                environment: 'production',
+                fingerprint: 'sha256:abc',
+                audience: 'aud-1',
+                repository: 'acme/api',
+                branch: 'main',
+                pull_request: 42,
+                base: 'base-sha-aaa',
+                head: 'head-sha-bbb',
+            },
+        });
+        const body = JSON.parse(cap.opts.body);
+        assert.equal(body.context.operation, 'merge');
+        assert.equal(body.context.target_id, 'svc-1');
+        assert.equal(body.context.environment, 'production');
+        assert.equal(body.context.fingerprint, 'sha256:abc');
+        assert.equal(body.context.audience, 'aud-1');
+        assert.equal(body.context.repository, 'acme/api');
+        assert.equal(body.context.branch, 'main');
+        assert.equal(body.context.pull_request, 42);
+        assert.equal(body.context.base, 'base-sha-aaa');
+        assert.equal(body.context.head, 'head-sha-bbb');
+    });
+});
+
 test('preflightChangeSet sends optional context.base/head (PR/commit SHAs)', async () => {
     await withMockFetch({ decision: 'ALLOW', execution_action: 'CONTINUE' }, async (cap) => {
         const c = new CodeRifts({ apiKey: 'cr_test_abc' });
