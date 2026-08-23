@@ -10,6 +10,8 @@ import { CLOCK_SKEW_LEEWAY_MS, isReceiptExpired, isIssuedInFuture } from './leew
 
 export const GRANT_VERSION = 'cr.exec.v1';
 export const GRANT_SIGNING_PREFIX = 'crexec.v1';
+// 0x1F is US (Unit Separator); NUL is 0x00. This identifier is a misnomer retained to
+// avoid a cross-repo rename — the BYTE (\x1f) is what is normative, not the name.
 const NUL = '\x1f';
 const SIGNED_FIELDS = [
     'kid', 'receipt_digest', 'scope_hash', 'audience', 'operation', 'target_id', 'jti', 'iat', 'exp',
