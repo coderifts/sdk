@@ -260,6 +260,11 @@ export interface PreflightChangeSetRequest {
     context?: PreflightChangeSetContext;
     previous_receipt?: string;
     idempotency_key?: string;
+    /**
+     * Opt-in cr.exec.v1 execution grant on authorize (PHASE-0).
+     * Default omitted/false. Analyze ignores it.
+     */
+    include_execution_grant?: boolean;
 }
 /** Request body for analyze/authorize wrappers (mode is fixed by the method). */
 export type PreflightChangeSetBody = Omit<PreflightChangeSetRequest, 'preflight_mode'>;

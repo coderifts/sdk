@@ -25,6 +25,19 @@ export {
     isIssuedInFuture,
 } from './leeway.js';
 export type { ExpiryLeewayContext } from './leeway.js';
+export {
+    verifyExecutionGrant,
+    computeScopeHash,
+    afterPayloadCanonical,
+    receiptDigest,
+    GRANT_VERSION,
+    GRANT_SIGNING_PREFIX,
+} from './execution-grant.js';
+export type {
+    ExecutionGrantIntended,
+    VerifyExecutionGrantResult,
+    GrantStatus,
+} from './execution-grant.js';
 export type {
     CodeRiftsOptions,
     ApiErrorBody,

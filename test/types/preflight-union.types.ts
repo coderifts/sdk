@@ -53,6 +53,8 @@ export function analyzeHasNoAuthorizationFields(res: PreflightChangeSetResponse)
         res.safe_for_agent;
         // @ts-expect-error analyze never mints a receipt
         res.chain_receipt;
+        // @ts-expect-error analyze never carries an execution grant
+        res.execution_grant;
         // @ts-expect-error analyze never carries the decision-result envelope
         res.decision_result;
     }

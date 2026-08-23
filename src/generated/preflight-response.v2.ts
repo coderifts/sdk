@@ -197,6 +197,10 @@ export interface AuthorizeChangeSetResponse {
    */
   receipt_kind: 'operation_authorization' | 'NONE';
   chain_receipt?: string;
+  /**
+   * Opt-in cr.exec.v1 execution grant (PHASE-0). Issued only when include_execution_grant is true on authorize. Short-lived mutation-bound sibling of chain_receipt; never unsigned. See…
+   */
+  execution_grant?: string;
   chain_status?: string;
   /**
    * Proof/receipt side: decision-result.v1 envelope when the issuance path produced one (validate with decision-result.v1.producer.json). Carries fingerprints, audience, receipt / deci…
