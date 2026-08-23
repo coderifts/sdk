@@ -435,7 +435,7 @@ export interface DecisionResultEnvelope {
       }[]
     | null;
   /**
-   * Additive (ID637 v5 slice 4; ID811 BOUND_ATTESTED). SERVER-authored change-set completeness claim level. Never caller-authored; never a boolean completeness:true. ATTESTED_UNVERIFIE…
+   * Additive (ID637 v5 slice 4; ID811 BOUND_ATTESTED; ID637 6b SERVER_DERIVED). SERVER-authored change-set completeness claim level. Never caller-authored; never a boolean completeness…
    */
   completeness_mode?:
     | 'UNBOUND'
@@ -499,6 +499,23 @@ export interface DecisionResultEnvelope {
      * ISO-8601 UTC timestamp of the proven binding. Present only when tenant_scope is bound. null/absent when unbound.
      */
     binding_proven_at?: string | null;
+  } | null;
+  /**
+   * Additive (ID637 6b). Present ONLY when derivation:"server" produced this envelope. ABSENT (not null) on the default caller-artifacts path so body_hash stays byte-identical. Covered…
+   */
+  derivation?: {
+    /**
+     * How the server listed the change-set. github_compare = GitHub Compare API via the App installation.
+     */
+    source: 'github_compare';
+    /**
+     * Resolved commit SHA of context.base (the named ref may be a branch). Part of what was analyzed.
+     */
+    base_sha: string;
+    /**
+     * Resolved commit SHA of context.head. Part of what was analyzed.
+     */
+    head_sha: string;
   } | null;
   /**
    * Additive (RT-P-20). SERVER-authored: whether fingerprint rebind is EXPECTED for this verdict at the merge/deploy gate. true = case-split hard-fails expected_but_absent / expected_b…
