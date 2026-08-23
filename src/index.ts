@@ -38,6 +38,20 @@ export type {
     VerifyExecutionGrantResult,
     GrantStatus,
 } from './execution-grant.js';
+export {
+    verifyExecutionAttestation,
+    attestSigningInput,
+    ATTEST_VERSION,
+    ATTEST_SIGNING_PREFIX,
+    ATTEST_ENVELOPE_TAG,
+} from './execution-attestation.js';
+export type {
+    AttestStatus,
+    ExecutorKeyEntry,
+    ExecutorKeyRegistry,
+    ExecutionAttestationIntended,
+    VerifyExecutionAttestationResult,
+} from './execution-attestation.js';
 export type {
     CodeRiftsOptions,
     ApiErrorBody,

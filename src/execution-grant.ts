@@ -85,8 +85,12 @@ function scalar(v: unknown): string {
     return v == null ? '' : String(v);
 }
 
+function hasStateNonce(body: Record<string, string>): boolean {
+    return typeof body.state_nonce === 'string' && body.state_nonce.length > 0;
+}
+
 function signingInput(body: Record<string, string>): string {
-    return [
+    const parts = [
         GRANT_SIGNING_PREFIX,
         scalar(body.kid),
         scalar(body.receipt_digest),
@@ -97,7 +101,10 @@ function signingInput(body: Record<string, string>): string {
         scalar(body.jti),
         scalar(body.iat),
         scalar(body.exp),
-    ].join('|');
+    ];
+    // ATOMIC: append only when non-empty so BEARER signing input stays byte-identical.
+    if (hasStateNonce(body)) parts.push(scalar(body.state_nonce));
+    return parts.join('|');
 }
 
 export function verifyExecutionGrant(
@@ -132,7 +139,10 @@ export function verifyExecutionGrant(
             return { valid: false, status: 'MALFORMED', reason: 'missing_field', payload };
         }
     }
-    const allowed = new Set(['v', ...SIGNED_FIELDS]);
+    if (payload.state_nonce != null && typeof payload.state_nonce !== 'string') {
+        return { valid: false, status: 'MALFORMED', reason: 'bad_state_nonce', payload };
+    }
+    const allowed = new Set(['v', ...SIGNED_FIELDS, 'state_nonce']);
     for (const k of Object.keys(payload)) {
         if (!allowed.has(k)) {
             return { valid: false, status: 'MALFORMED', reason: 'unknown_field', payload };
@@ -142,6 +152,9 @@ export function verifyExecutionGrant(
         if (payload[k].includes('|')) {
             return { valid: false, status: 'INVALID_SIGNATURE', reason: 'delimiter_in_field', payload };
         }
+    }
+    if (hasStateNonce(payload) && payload.state_nonce.includes('|')) {
+        return { valid: false, status: 'INVALID_SIGNATURE', reason: 'delimiter_in_field', payload };
     }
     if (!opts.publicKeyPem) {
         return { valid: false, status: 'UNKNOWN_KEY', reason: 'unknown_kid', payload };
