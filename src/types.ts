@@ -249,15 +249,14 @@ export interface PreflightChangeSetContext {
  * - authorize — operation-bound may-proceed (requires context.operation; may mint a receipt)
  */
 export type PreflightMode = 'analyze' | 'authorize';
-export interface PreflightChangeSetRequest {
+/** Fields both request modes share. */
+export interface PreflightChangeSetCommon {
     /**
      * Required top-level mode (server returns HTTP 400 if omitted).
      * Prefer `analyzeChangeSet` / `authorizeChangeSet` wrappers so the two meanings
      * cannot be mixed via a silent default.
      */
     preflight_mode: PreflightMode;
-    artifacts: Artifact[];
-    context?: PreflightChangeSetContext;
     previous_receipt?: string;
     idempotency_key?: string;
     /**
@@ -265,9 +264,92 @@ export interface PreflightChangeSetRequest {
      * Default omitted/false. Analyze ignores it.
      */
     include_execution_grant?: boolean;
+    /**
+     * ATOMIC-profile nonce (cr.exec.v1). REQUEST INPUT, not a server echo: you obtain it from
+     * your executor's state-challenge and pass it here; when `include_execution_grant` is true
+     * and the decision is allow-class, the server copies it into the signed grant as a SEPARATE
+     * signed field (deliberately NOT folded into `scope_hash` — after-payload binding and state
+     * binding are independent facts). Absent => BEARER grant, today's default.
+     * Server consumption: coderifts-app src/change-set.js:1256.
+     */
+    state_nonce?: string;
 }
+
+/**
+ * MODE A — caller supplies the change set.
+ *
+ * `derivation` is `never` here so the compiler rejects mixing the modes: the server returns
+ * 400 INVALID_INPUT for `derivation:"server"` alongside `artifacts[]`, with the reason
+ * "one source of truth per request".
+ */
+export interface CallerArtifactsRequest extends PreflightChangeSetCommon {
+    artifacts: Artifact[];
+    derivation?: never;
+    context?: PreflightChangeSetContext;
+}
+
+/**
+ * MODE B — the server lists the change set from the repository (ID637 6b).
+ *
+ * `artifacts` is `never`: supplying both is a 400. `context.repository` / `base` / `head` are
+ * REQUIRED — the server returns 400 `derivation_requires_base_head` without base+head, and
+ * 400 INVALID_INPUT without a parseable `owner/repo`. Requires a proven tenant-repo binding,
+ * else 403 `binding_not_proven`. This is the production path (docs/agents-quickstart.md).
+ */
+export interface ServerDerivedRequest extends PreflightChangeSetCommon {
+    derivation: 'server';
+    artifacts?: never;
+    context: PreflightChangeSetContext & {
+        repository: string;
+        base: string;
+        head: string;
+    };
+}
+
+/**
+ * The two mutually exclusive request modes. Misuse is a TYPE ERROR: `artifacts` with
+ * `derivation:'server'`, or a server-derived request missing repository/base/head, will not
+ * compile. The server remains the authority — this union fails fast, it does not re-implement
+ * policy.
+ */
+export type PreflightChangeSetRequest = CallerArtifactsRequest | ServerDerivedRequest;
+
 /** Request body for analyze/authorize wrappers (mode is fixed by the method). */
-export type PreflightChangeSetBody = Omit<PreflightChangeSetRequest, 'preflight_mode'>;
+export type PreflightChangeSetBody =
+    | Omit<CallerArtifactsRequest, 'preflight_mode'>
+    | Omit<ServerDerivedRequest, 'preflight_mode'>;
+/**
+ * Resolved compare identity — present ONLY on the derivation:"server" path.
+ * ABSENT (not null) on the caller-artifacts path so `body_hash` stays byte-identical.
+ * Lives inside the decision_result envelope; covered by body_hash, NOT in the fingerprint.
+ * Producer: coderifts-app src/change-set.js:1181.
+ */
+export interface DerivationEnvelope {
+    source: string;
+    base_sha: string;
+    head_sha: string;
+}
+
+/** Completeness mode. SERVER_DERIVED is authored only when derivation:"server" ran. */
+export type CompletenessMode =
+    | 'SERVER_DERIVED'
+    | 'BOUND_ATTESTED'
+    | 'ATTESTED_UNVERIFIED'
+    | 'UNBOUND'
+    | 'DIVERGED'
+    | 'UNESTABLISHABLE';
+
+/**
+ * WHO was authorized (ID963). Under body_hash; not in the verdict fingerprint.
+ * Producer: coderifts-app src/change-set.js:752.
+ */
+export interface AuthorityEnvelope {
+    audience: string | null;
+    tenant_scope: 'bound' | 'unbound';
+    /** Present only when tenant_scope is 'bound'. */
+    binding_proven_at?: string | null;
+}
+
 export interface ChangeSetArtifactFinding {
     id: string;
     type: string;

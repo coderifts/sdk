@@ -2,6 +2,32 @@
 
 All notable changes to `@coderifts/sdk` are documented here.
 
+## [3.6.0]
+
+Audit P1-2 — the shipped server-derivation and ATOMIC-grant features are now reachable from the
+SDK. Additive: existing caller-artifacts code compiles and behaves unchanged.
+
+### Added
+- **`PreflightChangeSetRequest` is now a discriminated union** of `CallerArtifactsRequest`
+  (`artifacts` required, `derivation?: never`) and `ServerDerivedRequest`
+  (`derivation: 'server'`, `artifacts?: never`, `context.repository`/`base`/`head` required).
+  Mixing the modes is a **compile error**, mirroring the server's 400s: `INVALID_INPUT`
+  ("one source of truth per request") for artifacts + derivation, and
+  `derivation_requires_base_head` for a derived request without base and head.
+- **`state_nonce?: string` on the request** — the ATOMIC-profile nonce is a REQUEST INPUT, not a
+  server echo. Obtain it from your executor's state-challenge; with `include_execution_grant`
+  the server copies it into the signed grant as a separate signed field (not folded into
+  `scope_hash`). Absent => BEARER grant.
+- **Response types** `DerivationEnvelope` (`source`/`base_sha`/`head_sha`, present only on the
+  derived path), `AuthorityEnvelope` (`audience`/`tenant_scope`/`binding_proven_at`), and
+  `CompletenessMode` including `SERVER_DERIVED`.
+- `test/types/preflight-request-modes.types.ts` — 9 `@ts-expect-error` assertions; each fails the
+  build if a negative case ever starts compiling.
+
+### Notes
+- No new HTTP behaviour and no client-side validation: the server remains the authority. The
+  union exists to fail fast at compile time, not to duplicate policy.
+
 ## [3.5.0]
 
 Additive — `cr.monitor.attest.v1` offline verifier. Existing callers unchanged.

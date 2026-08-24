@@ -37,6 +37,42 @@ if (result.execution_action !== 'CONTINUE') {
 }
 ```
 
+### Two request modes
+
+**Server-derived (the production path)** — the server lists the change set from the repository,
+so you never assemble `artifacts[]`:
+
+```typescript
+const result = await client.authorizeChangeSet({
+  derivation: 'server',
+  context: { repository: 'owner/repo', base: 'main', head: 'feature', operation: 'merge' },
+});
+```
+
+**Caller-supplied artifacts** — you assemble the complete base→head set yourself:
+
+```typescript
+const result = await client.authorizeChangeSet({
+  artifacts: [{ id: 'api', type: 'openapi', before: oldYaml, after: newYaml }],
+  context: { operation: 'merge' },
+});
+```
+
+The two are mutually exclusive and the types enforce it: passing `artifacts` alongside
+`derivation: 'server'`, or omitting `repository`/`base`/`head` from a derived request, is a
+**compile error** rather than a 400 at runtime.
+
+For an ATOMIC-profile grant, pass the nonce from your executor's state-challenge:
+
+```typescript
+await client.authorizeChangeSet({
+  derivation: 'server',
+  context: { repository: 'owner/repo', base: 'main', head: 'feature', operation: 'deploy' },
+  include_execution_grant: true,
+  state_nonce: nonceFromStateChallenge,
+});
+```
+
 For risk inspection that is explicitly **not** permission, use `analyzeChangeSet`: the
 analyze branch carries no `decision` / `execution_action` / `safe_for_agent` by protocol.
 
