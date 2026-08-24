@@ -2,6 +2,20 @@
 
 All notable changes to `@coderifts/sdk` are documented here.
 
+## [3.5.0]
+
+Additive — `cr.monitor.attest.v1` offline verifier. Existing callers unchanged.
+
+### Added
+- **`verifyMonitoringAttestation(token, { registry, intended? })`** — customer-pinned
+  monitoring-key registry (required; no default fetch). Statuses
+  `MON_ATTEST_VALID` | `MON_ATTEST_INVALID_SIGNATURE` | `MON_ATTEST_UNKNOWN_KEY` |
+  `MON_ATTEST_RETIRED_KEY_VALID_AT_ISSUE` | `MON_ATTEST_MALFORMED` |
+  `MON_ATTEST_UNBOUND`. Retired-key rule is receipt class (historical).
+- **`monitorAttestSigningInput`**, **`MONITOR_ATTEST_VERSION`**
+  (`cr.monitor.attest.v1`). Mirrors app kernel
+  `src/verdict-core/monitoring-attestation.js`.
+
 ## [3.2.0]
 
 Additive — optional `base` / `head` (PR/commit SHAs) on the typed preflight

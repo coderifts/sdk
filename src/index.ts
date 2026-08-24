@@ -52,6 +52,20 @@ export type {
     ExecutionAttestationIntended,
     VerifyExecutionAttestationResult,
 } from './execution-attestation.js';
+export {
+    verifyMonitoringAttestation,
+    monitorAttestSigningInput,
+    MONITOR_ATTEST_VERSION,
+    MONITOR_ATTEST_SIGNING_PREFIX,
+    MONITOR_ATTEST_ENVELOPE_TAG,
+} from './monitoring-attestation.js';
+export type {
+    MonAttestStatus,
+    MonitoringKeyEntry,
+    MonitoringKeyRegistry,
+    MonitoringAttestationIntended,
+    VerifyMonitoringAttestationResult,
+} from './monitoring-attestation.js';
 export type {
     CodeRiftsOptions,
     ApiErrorBody,
