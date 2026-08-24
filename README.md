@@ -8,7 +8,7 @@ Agent Governance SDK for the [CodeRifts](https://coderifts.com) API. Validate AP
 npm install @coderifts/sdk
 ```
 
-Current package: **3.2.0**.
+Current package: **3.7.0**.
 
 ## Quick Start
 
@@ -252,6 +252,34 @@ if (executionAction === 'STOP' || executionAction === 'REQUEST_APPROVAL') {
   // block or gate the tool call
 }
 ```
+
+## Policy delivery
+
+File-based hosts (Claude / Cursor / Copilot / Gemini) load the CodeRifts
+rule file automatically. A host that **builds its own system prompt** does
+not — unless it interpolates the constant:
+
+```typescript
+import { CODERIFTS_POLICY, withPolicy, detectPolicyPresence } from '@coderifts/sdk';
+
+const yourPrompt = 'You are a coding agent.';
+const content = `${yourPrompt}\n\n${CODERIFTS_POLICY}`;
+
+// or one line, idempotent, no in-place mutation:
+const messages = withPolicy([{ role: 'system', content: yourPrompt }, { role: 'user', content: '…' }]);
+
+const presence = detectPolicyPresence(content); // 'detected' | 'absent' | 'unknown'
+```
+
+Three layers (the guard ships the same constant and a `systemPrompt`
+observation on the outcome):
+
+1. **`withPolicy`** — append if the marker is not already present.
+2. **`CODERIFTS_POLICY`** — one import, one interpolation.
+3. **`detectPolicyPresence`** — last net. Nothing supplied → `unknown`, no
+   warn. Marker absent → once-per-process warn. Marker found → silent.
+
+This proves the **text is present**, not that the model read or obeyed it.
 
 ## Error Handling
 

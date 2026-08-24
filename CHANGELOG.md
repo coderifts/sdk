@@ -2,6 +2,30 @@
 
 All notable changes to `@coderifts/sdk` are documented here.
 
+## [3.7.0]
+
+Policy delivery — the canonical agent-host rule text as a one-import constant
+plus a presence helper, for hosts that build their own system prompt.
+
+### Added
+- **`CODERIFTS_POLICY`** — vendored from coderifts-app
+  `src/agent-host-rule.js` `getCanonicalRuleText()`. Drift-gated
+  byte-equal to the app (missing checkout fails loud).
+- **`POLICY_MARKER`** —
+  `A receipt authorizes ONE operation: a merge receipt does not authorize a deploy.`
+  Present in all six generated host formats.
+- **`withPolicy(prompt | messages)`** — append the policy if the marker is
+  absent. Idempotent. `injectPolicy: false` opt-out. Never mutates the
+  caller in place.
+- **`detectPolicyPresence` / `policyPresenceOf` / `observePolicyPresence`**
+  — `detected` | `absent` | `unknown`. `unknown` (nothing supplied) never
+  warns. `absent` warns once per process.
+
+Honesty: this proves the TEXT is present, not that the model read or
+obeyed it. The four guard adapters do not see the outbound request; hosts
+that assemble `messages` / `system` interpolate `CODERIFTS_POLICY` or call
+`withPolicy` themselves.
+
 ## [3.6.0]
 
 Audit P1-2 — the shipped server-derivation and ATOMIC-grant features are now reachable from the

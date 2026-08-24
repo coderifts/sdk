@@ -14,6 +14,22 @@
  */
 
 export { CodeRifts } from './client.js';
+export {
+    CODERIFTS_POLICY,
+    POLICY_MARKER,
+    POLICY_ABSENT_WARN,
+    withPolicy,
+    policyPresenceOf,
+    detectPolicyPresence,
+    observePolicyPresence,
+    warnPolicyAbsentOnce,
+    resetPolicyWarnForTests,
+} from './policy.js';
+export type {
+    PolicyPresence,
+    PolicyMessage,
+    WithPolicyOptions,
+} from './policy.js';
 export { CodeRiftsError, ApiError, TimeoutError, RateLimitError, AuthError } from './errors.js';
 export { readDecision } from './decision.js';
 export type { ReadDecisionResult } from './decision.js';
