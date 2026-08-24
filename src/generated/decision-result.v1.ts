@@ -505,9 +505,13 @@ export interface DecisionResultEnvelope {
    */
   derivation?: {
     /**
-     * How the server listed the change-set. github_compare = GitHub Compare API via the App installation.
+     * How the server listed the change-set. github_compare = GitHub Compare API via the App installation. gitlab_compare / bitbucket_compare = platform Compare via a caller-supplied shor…
      */
-    source: 'github_compare';
+    source: 'github_compare' | 'gitlab_compare' | 'bitbucket_compare';
+    /**
+     * Additive P1-6. SCM platform that produced this SERVER_DERIVED set. Taken from the proven binding / context.platform — never guessed from the repository string. Absent on envelopes …
+     */
+    platform?: 'github' | 'gitlab' | 'bitbucket';
     /**
      * Resolved commit SHA of context.base (the named ref may be a branch). Part of what was analyzed.
      */
