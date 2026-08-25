@@ -30,6 +30,24 @@ function isExecutionAction(v: unknown): v is ExecutionAction {
 }
 
 /**
+ * True when the response carries an EXPLICIT execution action — envelope-first,
+ * then top-level — drawn from the closed set.
+ *
+ * This exists so a permission-shaped value is never granted by the legacy
+ * `decision` -> action arm of {@link readDecision}. `decision` is the governance
+ * explanation label; letting it grant permission is the branch-on-decision
+ * pattern this SDK removes. Reading a decision may fall back to that arm;
+ * GRANTING one may not.
+ */
+export function hasExplicitExecutionAction(response: unknown): boolean {
+    if (!response || typeof response !== 'object') return false;
+    const r = response as Record<string, unknown>;
+    const env = r.decision_result as Record<string, unknown> | undefined;
+    if (env && typeof env === 'object' && isExecutionAction(env.execution_action)) return true;
+    return isExecutionAction(r.execution_action);
+}
+
+/**
  * Read a governance decision from ANY CodeRifts response, fail-closed. Resolution order:
  *   1. envelope-first — `response.decision_result.execution_action` (+ receipt);
  *   2. top-level `execution_action` (legacy REST endpoints emit it directly);
