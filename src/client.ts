@@ -1,8 +1,9 @@
 /**
  * @coderifts/sdk — Main client class
  */
-import type { CodeRiftsOptions, DiffRequest, DiffResponse, PreflightCheckRequest, PreflightCheckResponse, ExplainDecisionRequest, ExplainDecisionResponse, HowToUnblockRequest, HowToUnblockResponse, ScoreMcpRequest, ScoreMcpResponse, GetLedgerRequest, GetLedgerResponse, SimulatePolicyRequest, SimulatePolicyResponse, PreflightChangeSetRequest, PreflightChangeSetBody, PreflightChangeSetResponse, AnalyzeChangeSetResponse, AuthorizeChangeSetResponse, VerifyReceiptResponse, VerifyReceiptIntendedContext, DecisionLookupRequest, DecisionLookupResponse } from './types.js';
+import type { CodeRiftsOptions, DiffRequest, DiffResponse, PreflightCheckRequest, PreflightCheckResponse, ExplainDecisionRequest, ExplainDecisionResponse, HowToUnblockRequest, HowToUnblockResponse, ScoreMcpRequest, ScoreMcpResponse, GetLedgerRequest, GetLedgerResponse, SimulatePolicyRequest, SimulatePolicyResponse, PreflightChangeSetRequest, PreflightChangeSetBody, PreflightChangeSetResponse, AnalyzeChangeSetResponse, AuthorizeChangeSetResponse, VerifyReceiptResponse, VerifyReceiptIntendedContext, DecisionLookupRequest, DecisionLookupResponse, ExecutionAction } from './types.js';
 import { ApiError, AuthError, RateLimitError, TimeoutError } from './errors.js';
+import { readDecision } from './decision.js';
 const DEFAULT_BASE_URL = 'https://app.coderifts.com';
 const DEFAULT_TIMEOUT = 30_000;
 export class CodeRifts {
@@ -73,9 +74,15 @@ export class CodeRifts {
             old_spec: req.old_spec,
             new_spec: req.new_spec,
         });
+        // Legacy mapper (3.7.0 and Python 3.4.0): omitted `decision` still becomes
+        // ALLOW for the `safe` flag. `safe` is not the control input — branch on
+        // `execution_action` via readDecision. Do not invent an execution_action.
         const decision = raw.decision || 'ALLOW';
         return {
             decision,
+            // Pass through — do not invent. Live POST /api/v1/agent/preflight emits this
+            // top-level; hiding it taught the wrong shape.
+            execution_action: raw.execution_action,
             omega_api: raw.omega_api ?? 0,
             safe: decision === 'ALLOW' || decision === 'WARN',
             reflex_triggers: raw.reflex_triggers || [],
@@ -97,9 +104,13 @@ export class CodeRifts {
     }
     // ─── 3. explainDecision ────────────────────────────────────────────────
     /**
-     * Returns a human-readable explanation of why a decision was made.
+     * Human-readable explanation of a decision. **Advisory prose, not a gate.**
      *
-     * Computed client-side from the omega components and reflex triggers.
+     * Computed client-side — no HTTP. For control flow call `readDecision` on the
+     * response yourself. This method renders a summary from `execution_action`
+     * (via `readDecision`); `decision` is the governance label in the prose and
+     * never selects a branch. Unknown / absent action → "treat as STOP". Never
+     * reports a change as "safe to proceed".
      */
     async explainDecision(req: ExplainDecisionRequest): Promise<ExplainDecisionResponse> {
         const components = [];
@@ -115,39 +126,47 @@ export class CodeRifts {
             }
         }
         const triggers = req.reflex_triggers || [];
+        const read = readDecision(advisoryReadInput(req));
         let summary = `Decision: ${req.decision} (Ω_API = ${req.omega_api}).`;
         if (triggers.length > 0) {
             summary += ` ${triggers.length} reflex rule(s) triggered.`;
         }
-        if (req.decision === 'BLOCK') {
-            summary += ' This change is blocked due to high risk.';
+        if (read.reason) {
+            summary += ` ${UNREADABLE_SUMMARY}`;
+        } else {
+            summary += ` ${ACTION_SUMMARY[read.executionAction]}`;
         }
-        else if (req.decision === 'REQUIRE_APPROVAL') {
-            summary += ' This change requires manual approval before merging.';
-        }
-        else if (req.decision === 'WARN') {
-            summary += ' This change has warnings but can proceed.';
-        }
-        else {
-            summary += ' This change is safe to proceed.';
-        }
-        return { summary, components };
+        return {
+            summary,
+            components,
+            execution_action: read.executionAction,
+            reason: read.reason,
+        };
     }
     // ─── 4. howToUnblock ───────────────────────────────────────────────────
     /**
-     * Returns actionable steps to resolve a BLOCK decision.
+     * Actionable steps to resolve a halted change. **Advisory prose, not a gate.**
      *
-     * Computed client-side from breaking changes and detected patterns.
+     * Computed client-side — no HTTP. For control flow call `readDecision`.
+     * "No unblock needed" is emitted **only** for a readable CONTINUE /
+     * CONTINUE_WITH_MONITORING. An unrecognised or absent action is treated as
+     * STOP and still yields steps — never "no unblock needed".
      */
     async howToUnblock(req: HowToUnblockRequest): Promise<HowToUnblockResponse> {
-        const actions = [];
+        const read = readDecision(advisoryReadInput(req));
+        const actions: Array<{ step: number; description: string; code_example?: string }> = [];
         let step = 1;
-        if (req.decision !== 'BLOCK') {
+        if (!read.reason && NO_UNBLOCK_ACTIONS.has(read.executionAction)) {
             actions.push({
                 step: step++,
-                description: `Current decision is "${req.decision}" — no unblock needed.`,
+                description: `Execution action is "${read.executionAction}" (decision: "${req.decision}") — no unblock needed.`,
             });
-            return { actions };
+            return { actions, execution_action: read.executionAction, reason: read.reason };
+        }
+        if (read.reason) {
+            actions.push({ step: step++, description: UNREADABLE_UNBLOCK });
+        } else if (read.executionAction === 'REQUEST_APPROVAL') {
+            actions.push({ step: step++, description: ACTION_SUMMARY.REQUEST_APPROVAL });
         }
         const bcs = req.breaking_changes || [];
         if (bcs.length > 0) {
@@ -171,7 +190,7 @@ export class CodeRifts {
             step: step++,
             description: 'Request a manual override via POST /api/v1/ledger/:id/override if this is an emergency.',
         });
-        return { actions };
+        return { actions, execution_action: read.executionAction, reason: read.reason };
     }
     // ─── 5. scoreMcp ──────────────────────────────────────────────────────
     /**
@@ -302,6 +321,43 @@ export class CodeRifts {
         return this.request<DecisionLookupResponse>('POST', '/api/v1/decisions/lookup', req);
     }
 }
+// ── Advisory prose (rendered from execution_action, never from `decision`) ────
+const ACTION_SUMMARY: Record<ExecutionAction, string> = {
+    CONTINUE: 'Execution action: CONTINUE — this change may proceed.',
+    CONTINUE_WITH_MONITORING:
+        'Execution action: CONTINUE_WITH_MONITORING — this change may proceed only with monitoring wired.',
+    REQUEST_APPROVAL:
+        'Execution action: REQUEST_APPROVAL — manual approval is required before this change may proceed.',
+    STOP: 'Execution action: STOP — this change must not proceed.',
+};
+/** Rendered whenever readDecision falls closed. Never says "safe to proceed". */
+const UNREADABLE_SUMMARY =
+    'Execution action is unrecognised or absent (UNREADABLE_DECISION) — treat as STOP; this change must not proceed.';
+/** First unblock step when readDecision falls closed. Never "no unblock needed". */
+const UNREADABLE_UNBLOCK =
+    'Execution action is unrecognised or absent (UNREADABLE_DECISION) — treat as STOP. Re-read a response that carries execution_action, and resolve the findings below before proceeding.';
+const NO_UNBLOCK_ACTIONS: ReadonlySet<ExecutionAction> = new Set(['CONTINUE', 'CONTINUE_WITH_MONITORING']);
+
+/**
+ * Control payload for the two advisory helpers.
+ *
+ * Helpers do **not** need readDecision's v1 `{decision:"ALLOW"} → CONTINUE` arm
+ * (sunset 2026-09-07). Passing the request object (which always carries
+ * `decision` for prose) would let that arm drive the summary. We pass either
+ * the caller's `response` with top-level `decision` stripped, or
+ * `{ execution_action }` alone — so arms 1, 2, 4 fire and arm 3 cannot.
+ */
+function advisoryReadInput(req: { response?: unknown; execution_action?: unknown }): unknown {
+    if (req.response !== undefined) {
+        if (!req.response || typeof req.response !== 'object' || Array.isArray(req.response)) {
+            return req.response;
+        }
+        const { decision: _omit, ...rest } = req.response as Record<string, unknown>;
+        return rest;
+    }
+    return { execution_action: req.execution_action };
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function describeComponent(name: string, value: number): string {
     const descriptions: Record<string, string> = {

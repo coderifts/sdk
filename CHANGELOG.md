@@ -2,6 +2,36 @@
 
 All notable changes to `@coderifts/sdk` are documented here.
 
+## [3.8.0]
+
+Fail-open fix — `explainDecision` and `howToUnblock` rebuilt on `readDecision`.
+Mirrors Python SDK 3.4.0 semantics. `readDecision` itself was already
+fail-closed; these two helpers were not (3.7.0 `else` → "safe to proceed",
+`decision !== 'BLOCK'` → "no unblock needed").
+
+### Changed
+- **`explainDecision` / `howToUnblock` are prose, not gates.** Control flow
+  comes from `execution_action` via `readDecision`. `decision` survives in
+  the summary text only — never in a branch test.
+- Unknown / absent / `null` / `undefined` input → "unrecognised — treat as
+  STOP". Never "safe to proceed". `howToUnblock` never says "no unblock
+  needed" for an unreadable value (that wording is only for a readable
+  `CONTINUE` / `CONTINUE_WITH_MONITORING`).
+- Helpers do **not** use `readDecision`'s v1 `{decision:"ALLOW"} → CONTINUE`
+  arm (kept in the normaliser until 2026-09-07). They pass `response` with
+  top-level `decision` stripped, or `{ execution_action }` alone.
+- **`PreflightCheckResponse.execution_action`** and
+  **`DiffResponse.execution_action`** — the live `/agent/preflight` and
+  `/diff` endpoints emit the control field top-level; the stubs hid it.
+  `preflightCheck` now passes the server value through (does not invent one).
+
+### Added
+- Optional `execution_action` / `response` on the two helper request types.
+- `execution_action` + `reason` on the helper responses.
+- AST guard in `test/advisory.test.js` (TypeScript compiler API, already a
+  devDependency): flags the published 3.7.0 helper source, clears the fixed
+  `src/client.ts`.
+
 ## [3.7.0]
 
 Policy delivery — the canonical agent-host rule text as a one-import constant

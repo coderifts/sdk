@@ -8,7 +8,7 @@ Agent Governance SDK for the [CodeRifts](https://coderifts.com) API. Validate AP
 npm install @coderifts/sdk
 ```
 
-Current package: **3.7.0**.
+Current package: **3.8.0**.
 
 ## Quick Start
 
@@ -94,9 +94,10 @@ const result = await client.preflightCheck({
   old_spec: '...',
   new_spec: '...',
 });
-// result.decision: 'BLOCK' | 'REQUIRE_APPROVAL' | 'WARN' | 'ALLOW'
+// result.execution_action: 'CONTINUE' | 'CONTINUE_WITH_MONITORING' | 'REQUEST_APPROVAL' | 'STOP'
+// result.decision: 'BLOCK' | 'REQUIRE_APPROVAL' | 'WARN' | 'ALLOW'  // prose / explanation
 // result.omega_api: number
-// result.safe: boolean
+// result.safe: boolean  // legacy; not the control input
 // result.reflex_triggers: Array<{ rule: string; decision: string }>
 // result.affected_tools: Array<{ tool_name: string; status: string }>
 ```
@@ -116,32 +117,10 @@ const result = await client.diff({
 // result.should_block: boolean
 ```
 
-### `explainDecision(options)`
+### `explainDecision` / `howToUnblock` — prose, not gates
 
-Human-readable explanation of why a decision was made.
-
-```typescript
-const explanation = await client.explainDecision({
-  omega_api: 43.95,
-  decision: 'BLOCK',
-  reflex_triggers: [...],
-});
-// explanation.summary: string
-// explanation.components: Array<{ name: string; value: number; description: string }>
-```
-
-### `howToUnblock(options)`
-
-Actionable steps to resolve a BLOCK decision.
-
-```typescript
-const steps = await client.howToUnblock({
-  decision: 'BLOCK',
-  breaking_changes: [...],
-  detected_patterns: [...],
-});
-// steps.actions: Array<{ step: number; description: string; code_example?: string }>
-```
+See [Reading a decision](#reading-a-decision-start-here). These two helpers
+render copy from `execution_action`. They are not permission checks.
 
 ### `scoreMcp(manifest)`
 
@@ -239,19 +218,74 @@ const d = await client.getDecisionDetails({ decision_id: 'dec_...' });
 // d.decision_result (DecisionResultEnvelope), d.meta
 ```
 
-### `readDecision(response)`
+## Reading a decision (start here)
 
-Pure helper (no network) to read a governance decision from **any** CodeRifts response, fail-closed.
-Envelope-first, then top-level `execution_action`, then a `decision`→action map, else `STOP`. Never throws.
+`readDecision(response)` is the one correct entry point for turning any
+CodeRifts response into a go / no-go. It is fail-closed.
 
 ```typescript
-import { readDecision } from '@coderifts/sdk';
+import { CodeRifts, readDecision } from '@coderifts/sdk';
 
-const { executionAction, decision, envelope, receipt } = readDecision(res);
-if (executionAction === 'STOP' || executionAction === 'REQUEST_APPROVAL') {
-  // block or gate the tool call
+const client = new CodeRifts({ apiKey: 'cr_live_...' });
+const response = await client.authorizeChangeSet({
+  artifacts,
+  context: { operation: 'deploy' },
+});
+
+const read = readDecision(response);
+if (read.executionAction === 'CONTINUE') {
+  deploy();
+} else if (read.executionAction === 'CONTINUE_WITH_MONITORING') {
+  deployWithMonitoring();
+} else {
+  // REQUEST_APPROVAL, STOP, or anything unreadable
+  halt(read.decision, read.reason);
 }
 ```
+
+**`execution_action` is the control input.** `decision` (`ALLOW` / `WARN` /
+`REQUIRE_APPROVAL` / `BLOCK`) is the governance *explanation* label: log it,
+print it, put it in a PR comment — never branch on it. That is the agent-host
+rule `not_for_control_flow_use_execution_action`, and `@coderifts/conformance`
+ships a deliberately-wrong `branch-on-decision` subject that the suite fails.
+
+Resolution order, and what falls closed:
+
+| Input | Result |
+|-------|--------|
+| `decision_result.execution_action` (envelope) | that action, plus `envelope` / `receipt` |
+| top-level `execution_action` | that action |
+| unknown / misspelled / lowercase action | `STOP`, `reason: 'UNREADABLE_DECISION'` |
+| `{}`, `null`, a string, an error body | `STOP`, `reason: 'UNREADABLE_DECISION'` |
+| `decision` only (v1 compatibility arm, sunset 2026-09-07) | mapped action (`ALLOW` → `CONTINUE`, …) |
+| an **analyze** response | `STOP` — analyze is informational, not permission |
+
+`readDecision` never throws, so a guard may call it on any value.
+
+**What it does not do: it does not verify a receipt.** A returned `receipt` is
+transported, not validated.
+
+The v1 `{decision:"ALLOW"} → CONTINUE` arm stays in the **normaliser** until
+the 2026-09-07 sunset. The two advisory helpers do **not** use it: they pass
+`execution_action` (or a `response` with top-level `decision` stripped) so
+the forbidden field cannot drive their sentences.
+
+### `explainDecision` / `howToUnblock` are prose, not gates
+
+Both render human-readable copy. Neither is a permission check — always gate on
+`readDecision`. Their control input is `execution_action`, passed either as a
+full payload (preferred) or as the scalar:
+
+```typescript
+await client.explainDecision({ omega_api: 0.62, decision: 'BLOCK', response });
+await client.howToUnblock({ decision: 'BLOCK', breaking_changes: bcs, response });
+```
+
+Given an unreadable or absent execution action they say the action is
+unrecognised and must be treated as STOP. `explainDecision` never reports a
+change as "safe to proceed", and `howToUnblock` never says "no unblock
+needed" for an unreadable value — that wording is reserved for a readable
+`CONTINUE` / `CONTINUE_WITH_MONITORING`.
 
 ## Policy delivery
 

@@ -31,6 +31,12 @@ export interface AffectedTool {
 }
 export interface PreflightCheckResponse {
     decision: string;
+    /**
+     * Control field emitted top-level by POST /api/v1/agent/preflight.
+     * Branch on this (via `readDecision`); `decision` is the explanation label.
+     * Optional: the client passes the server value through and does not invent one.
+     */
+    execution_action?: ExecutionAction;
     omega_api: number;
     safe: boolean;
     reflex_triggers: ReflexTrigger[];
@@ -71,6 +77,11 @@ export interface DiffResponse {
     compatibility_suggestions: unknown[];
     omega_api?: number;
     omega_decision?: string;
+    /**
+     * Control field emitted top-level by POST /api/v1/diff.
+     * Branch on this (via `readDecision`); `omega_decision` is the explanation label.
+     */
+    execution_action?: ExecutionAction;
     reflex_override?: boolean;
     reflex_triggers?: ReflexTrigger[];
     confidence_score?: number;
@@ -81,9 +92,14 @@ export interface DiffResponse {
 }
 export interface ExplainDecisionRequest {
     omega_api: number;
+    /** Governance label for the prose (e.g. ALLOW). Not a gate. */
     decision: string;
     reflex_triggers?: ReflexTrigger[];
     omega_components?: Record<string, unknown>;
+    /** Control input. Ignored when `response` is supplied. */
+    execution_action?: string;
+    /** Full API payload; preferred. Takes precedence over `execution_action`. */
+    response?: unknown;
 }
 export interface ExplainComponent {
     name: string;
@@ -93,12 +109,19 @@ export interface ExplainComponent {
 export interface ExplainDecisionResponse {
     summary: string;
     components: ExplainComponent[];
+    execution_action: ExecutionAction;
+    reason?: string;
 }
 export interface HowToUnblockRequest {
+    /** Governance label for the prose. Not a gate. */
     decision: string;
     breaking_changes?: BreakingChange[];
     detected_patterns?: unknown[];
     reflex_triggers?: ReflexTrigger[];
+    /** Control input. Ignored when `response` is supplied. */
+    execution_action?: string;
+    /** Full API payload; preferred. Takes precedence over `execution_action`. */
+    response?: unknown;
 }
 export interface UnblockAction {
     step: number;
@@ -107,6 +130,8 @@ export interface UnblockAction {
 }
 export interface HowToUnblockResponse {
     actions: UnblockAction[];
+    execution_action: ExecutionAction;
+    reason?: string;
 }
 export interface ScoreMcpRequest {
     manifest: {

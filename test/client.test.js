@@ -284,6 +284,31 @@ test('VerifyReceiptResponse shape — required keys + currently_authorized null 
     });
 });
 
+test('preflightCheck passes through top-level execution_action (does not invent one)', async () => {
+    await withMockFetch({
+        decision: 'BLOCK',
+        execution_action: 'STOP',
+        omega_api: 1,
+        reflex_triggers: [],
+        affected_tools: [],
+    }, async () => {
+        const c = new CodeRifts({ apiKey: 'cr_test_abc' });
+        const res = await c.preflightCheck({ tool_name: 't', old_spec: 'a', new_spec: 'b' });
+        assert.equal(res.execution_action, 'STOP');
+        assert.equal(res.decision, 'BLOCK');
+    });
+    await withMockFetch({
+        decision: 'BLOCK',
+        omega_api: 1,
+        reflex_triggers: [],
+        affected_tools: [],
+    }, async () => {
+        const c = new CodeRifts({ apiKey: 'cr_test_abc' });
+        const res = await c.preflightCheck({ tool_name: 't', old_spec: 'a', new_spec: 'b' });
+        assert.equal(res.execution_action, undefined);
+    });
+});
+
 test('getDecisionDetails -> POST /api/v1/decisions/lookup', async () => {
     await withMockFetch({ decision: 'ALLOW', decision_result: {}, meta: {} }, async (cap) => {
         const c = new CodeRifts({ apiKey: 'cr_test_abc' });
