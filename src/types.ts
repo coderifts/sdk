@@ -30,7 +30,13 @@ export interface AffectedTool {
     patterns?: string[];
 }
 export interface PreflightCheckResponse {
-    decision: string;
+    /**
+     * The governance explanation label as the server sent it, or `undefined`
+     * when the server omitted it. 3.9.0 BREAKING: the SDK no longer substitutes
+     * `'ALLOW'` for an absent field. Never branch on this — branch on
+     * `execution_action` via `readDecision`.
+     */
+    decision?: string;
     /**
      * Control field emitted top-level by POST /api/v1/agent/preflight.
      * Branch on this (via `readDecision`); `decision` is the explanation label.
@@ -38,6 +44,12 @@ export interface PreflightCheckResponse {
      */
     execution_action?: ExecutionAction;
     omega_api: number;
+    /**
+     * 3.9.0 BREAKING, fail-closed: `true` only when the response carried an
+     * explicit `CONTINUE`. Absent, unknown or unrecognised input yields `false`.
+     * It now means "we verified it is safe", not "we did not see a reason it is
+     * not". Before 3.9.0 an omitted `decision` produced `true`.
+     */
     safe: boolean;
     reflex_triggers: ReflexTrigger[];
     affected_tools: AffectedTool[];

@@ -326,3 +326,85 @@ test('baseUrl override applies; existing diff() is unchanged (frozen)', async ()
         assert.equal(cap.opts.headers.Authorization, 'Bearer cr_test_abc');
     });
 });
+
+// ── 3.9.0 fail-closed `safe` (BREAKING) ────────────────────────────────────
+// The parity table below is duplicated verbatim in the Python SDK
+// (tests/test_client.py, SAFE_PARITY_TABLE). Same ids, same inputs, same
+// expected `safe`. If one side changes, the two tables stop matching.
+const SAFE_PARITY_TABLE = [
+    ['absent-decision-and-action', { omega_api: 0 }, false],
+    ['legacy-decision-only-allow', { decision: 'ALLOW' }, false],
+    ['action-continue', { execution_action: 'CONTINUE' }, true],
+    ['action-continue-with-monitoring', { execution_action: 'CONTINUE_WITH_MONITORING' }, false],
+    ['action-request-approval', { execution_action: 'REQUEST_APPROVAL' }, false],
+    ['action-stop', { execution_action: 'STOP' }, false],
+    ['unrecognised-action', { execution_action: 'PROBABLY_FINE', decision: 'ALLOW' }, false],
+];
+
+test('preflightCheck: an absent decision field yields safe:false (3.9.0 regression guard — the fail-open)', async () => {
+    // The exact pre-3.9.0 defect: the server omits `decision`, the SDK
+    // manufactured 'ALLOW', and `safe` came back true. Permanent guard.
+    await withMockFetch({ omega_api: 0, reflex_triggers: [], affected_tools: [] }, async () => {
+        const c = new CodeRifts({ apiKey: 'cr_test_abc' });
+        const res = await c.preflightCheck({ tool_name: 't', old_spec: 'a', new_spec: 'b' });
+        assert.equal(res.safe, false);
+        assert.equal(res.decision, undefined, 'no decision may be manufactured');
+    });
+});
+
+test('preflightCheck: pre-3.9.0 fail-open behaviour is gone (absent decision no longer yields safe:true)', async () => {
+    for (const raw of [{}, { omega_api: 0 }, { reflex_triggers: [] }, { decision: null }, { decision: '' }]) {
+        await withMockFetch(raw, async () => {
+            const c = new CodeRifts({ apiKey: 'cr_test_abc' });
+            const res = await c.preflightCheck({ tool_name: 't', old_spec: 'a', new_spec: 'b' });
+            assert.notEqual(res.safe, true, `must not grant safe for ${JSON.stringify(raw)}`);
+        });
+    }
+});
+
+test('preflightCheck: each canonical execution_action maps to the correct safe value', async () => {
+    const expected = {
+        CONTINUE: true,
+        CONTINUE_WITH_MONITORING: false,
+        REQUEST_APPROVAL: false,
+        STOP: false,
+    };
+    for (const [action, want] of Object.entries(expected)) {
+        await withMockFetch({ execution_action: action }, async () => {
+            const c = new CodeRifts({ apiKey: 'cr_test_abc' });
+            const res = await c.preflightCheck({ tool_name: 't', old_spec: 'a', new_spec: 'b' });
+            assert.equal(res.safe, want, `${action} -> safe:${want}`);
+        });
+    }
+});
+
+test('preflightCheck: an unrecognised execution_action yields safe:false', async () => {
+    for (const action of ['PROBABLY_FINE', 'continue', 'CONTINUE_WITH_MONITORNG', null, 7, {}]) {
+        await withMockFetch({ execution_action: action, decision: 'ALLOW' }, async () => {
+            const c = new CodeRifts({ apiKey: 'cr_test_abc' });
+            const res = await c.preflightCheck({ tool_name: 't', old_spec: 'a', new_spec: 'b' });
+            assert.equal(res.safe, false, `unrecognised ${JSON.stringify(action)} must not grant safe`);
+        });
+    }
+});
+
+test('preflightCheck: a legacy decision-only response does not grant safe (decision never grants permission)', async () => {
+    for (const d of ['ALLOW', 'WARN', 'REQUIRE_APPROVAL', 'BLOCK']) {
+        await withMockFetch({ decision: d }, async () => {
+            const c = new CodeRifts({ apiKey: 'cr_test_abc' });
+            const res = await c.preflightCheck({ tool_name: 't', old_spec: 'a', new_spec: 'b' });
+            assert.equal(res.safe, false, `decision:${d} alone must not grant safe`);
+            assert.equal(res.decision, d, 'the server label is still passed through');
+        });
+    }
+});
+
+test('preflightCheck: safe parity table (identical to the Python SDK table)', async () => {
+    for (const [id, raw, want] of SAFE_PARITY_TABLE) {
+        await withMockFetch(raw, async () => {
+            const c = new CodeRifts({ apiKey: 'cr_test_abc' });
+            const res = await c.preflightCheck({ tool_name: 't', old_spec: 'a', new_spec: 'b' });
+            assert.equal(res.safe, want, `${id} -> safe:${want}`);
+        });
+    }
+});

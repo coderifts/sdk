@@ -3,7 +3,7 @@
  */
 import type { CodeRiftsOptions, DiffRequest, DiffResponse, PreflightCheckRequest, PreflightCheckResponse, ExplainDecisionRequest, ExplainDecisionResponse, HowToUnblockRequest, HowToUnblockResponse, ScoreMcpRequest, ScoreMcpResponse, GetLedgerRequest, GetLedgerResponse, SimulatePolicyRequest, SimulatePolicyResponse, PreflightChangeSetRequest, PreflightChangeSetBody, PreflightChangeSetResponse, AnalyzeChangeSetResponse, AuthorizeChangeSetResponse, VerifyReceiptResponse, VerifyReceiptIntendedContext, DecisionLookupRequest, DecisionLookupResponse, ExecutionAction } from './types.js';
 import { ApiError, AuthError, RateLimitError, TimeoutError } from './errors.js';
-import { readDecision } from './decision.js';
+import { readDecision, hasExplicitExecutionAction } from './decision.js';
 const DEFAULT_BASE_URL = 'https://app.coderifts.com';
 const DEFAULT_TIMEOUT = 30_000;
 export class CodeRifts {
@@ -74,17 +74,22 @@ export class CodeRifts {
             old_spec: req.old_spec,
             new_spec: req.new_spec,
         });
-        // Legacy mapper (3.7.0 and Python 3.4.0): omitted `decision` still becomes
-        // ALLOW for the `safe` flag. `safe` is not the control input — branch on
-        // `execution_action` via readDecision. Do not invent an execution_action.
-        const decision = raw.decision || 'ALLOW';
+        // 3.9.0 — BREAKING, deliberate. `safe` is a permission and is now GRANTED,
+        // not merely un-refused: it is true only when the response carried an
+        // explicit CONTINUE. An absent, unknown or unrecognised action reads as
+        // STOP and `safe` is false. The pre-3.9.0 mapper manufactured an ALLOW
+        // from an omitted field, so a server that said nothing produced
+        // `safe: true`. `decision` is now passed through exactly as received —
+        // the SDK computes no decision of its own.
+        const read = readDecision(raw);
+        const safe = read.executionAction === 'CONTINUE' && hasExplicitExecutionAction(raw);
         return {
-            decision,
+            decision: raw.decision,
             // Pass through — do not invent. Live POST /api/v1/agent/preflight emits this
             // top-level; hiding it taught the wrong shape.
             execution_action: raw.execution_action,
             omega_api: raw.omega_api ?? 0,
-            safe: decision === 'ALLOW' || decision === 'WARN',
+            safe,
             reflex_triggers: raw.reflex_triggers || [],
             affected_tools: raw.affected_tools || [],
             confidence_score: raw.confidence_score,

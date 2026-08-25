@@ -95,9 +95,11 @@ const result = await client.preflightCheck({
   new_spec: '...',
 });
 // result.execution_action: 'CONTINUE' | 'CONTINUE_WITH_MONITORING' | 'REQUEST_APPROVAL' | 'STOP'
-// result.decision: 'BLOCK' | 'REQUIRE_APPROVAL' | 'WARN' | 'ALLOW'  // prose / explanation
+// result.decision?: 'BLOCK' | 'REQUIRE_APPROVAL' | 'WARN' | 'ALLOW'  // prose; absent if the server omitted it
 // result.omega_api: number
-// result.safe: boolean  // legacy; not the control input
+// result.safe: boolean  // 3.9.0 fail-closed: true ONLY on an explicit CONTINUE.
+//                       // Means "we verified it is safe", not "we saw no reason it is not".
+//                       // Not the control input — branch on execution_action via readDecision.
 // result.reflex_triggers: Array<{ rule: string; decision: string }>
 // result.affected_tools: Array<{ tool_name: string; status: string }>
 ```
