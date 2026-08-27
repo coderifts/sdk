@@ -301,6 +301,12 @@ export interface PreflightChangeSetCommon {
      * Default omitted/false. Analyze ignores it.
      */
     include_execution_grant?: boolean;
+    /** Mint cr.exec.v2 when 'v2'. Default omitted = v1 (compat window). */
+    grant_version?: 'v1' | 'v2';
+    executor_id?: string;
+    adapter_id?: string;
+    target_uri?: string;
+    tenant_id?: string;
     /**
      * ATOMIC-profile nonce (cr.exec.v1). REQUEST INPUT, not a server echo: you obtain it from
      * your executor's state-challenge and pass it here; when `include_execution_grant` is true

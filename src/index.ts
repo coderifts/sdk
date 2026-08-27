@@ -47,12 +47,14 @@ export {
     afterPayloadCanonical,
     receiptDigest,
     GRANT_VERSION,
+    GRANT_VERSION_V2,
     GRANT_SIGNING_PREFIX,
 } from './execution-grant.js';
 export type {
     ExecutionGrantIntended,
     VerifyExecutionGrantResult,
     GrantStatus,
+    ExecutionGrantV2,
 } from './execution-grant.js';
 export {
     verifyExecutionAttestation,

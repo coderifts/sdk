@@ -9,6 +9,28 @@ import { createHash, createPublicKey, verify as ed25519verify } from 'crypto';
 import { CLOCK_SKEW_LEEWAY_MS, isReceiptExpired, isIssuedInFuture } from './leeway.js';
 
 export const GRANT_VERSION = 'cr.exec.v1';
+export const GRANT_VERSION_V2 = 'cr.exec.v2';
+
+/** Typed cr.exec.v2 payload (Execution Plane §1B). */
+export interface ExecutionGrantV2 {
+    v: 'cr.exec.v2';
+    kid: string;
+    grant_id: string;
+    receipt_hash: string;
+    tenant_id: string;
+    executor_id: string;
+    adapter_id: string;
+    operation: string;
+    target_uri: string;
+    expected_state_token: string;
+    after_payload_hash: string;
+    nonce_hash: string;
+    policy_hash: string;
+    audience_hash: string;
+    not_before: string;
+    expires_at: string;
+    max_attempts: number;
+}
 export const GRANT_SIGNING_PREFIX = 'crexec.v1';
 // 0x1F is US (Unit Separator); NUL is 0x00. This identifier is a misnomer retained to
 // avoid a cross-repo rename — the BYTE (\x1f) is what is normative, not the name.
