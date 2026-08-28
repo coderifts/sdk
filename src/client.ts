@@ -1,7 +1,7 @@
 /**
  * @coderifts/sdk — Main client class
  */
-import type { CodeRiftsOptions, DiffRequest, DiffResponse, PreflightCheckRequest, PreflightCheckResponse, ExplainDecisionRequest, ExplainDecisionResponse, HowToUnblockRequest, HowToUnblockResponse, ScoreMcpRequest, ScoreMcpResponse, GetLedgerRequest, GetLedgerResponse, SimulatePolicyRequest, SimulatePolicyResponse, PreflightChangeSetRequest, PreflightChangeSetBody, PreflightChangeSetResponse, AnalyzeChangeSetResponse, AuthorizeChangeSetResponse, VerifyReceiptResponse, VerifyReceiptIntendedContext, DecisionLookupRequest, DecisionLookupResponse, ExecutionAction } from './types.js';
+import type { CodeRiftsOptions, DiffRequest, DiffResponse, PreflightCheckRequest, PreflightCheckResponse, ExplainDecisionRequest, ExplainDecisionResponse, HowToUnblockRequest, HowToUnblockResponse, ScoreMcpRequest, ScoreMcpResponse, GetLedgerRequest, GetLedgerResponse, SimulatePolicyRequest, SimulatePolicyResponse, PreflightChangeSetRequest, PreflightChangeSetBody, PreflightChangeSetResponse, AnalyzeChangeSetResponse, AuthorizeChangeSetResponse, VerifyReceiptResponse, VerifyReceiptIntendedContext, DecisionLookupRequest, DecisionLookupResponse, ExecutionAction, PreflightRequestOptions } from './types.js';
 import { ApiError, AuthError, RateLimitError, TimeoutError } from './errors.js';
 import { readDecision, hasExplicitExecutionAction } from './decision.js';
 const DEFAULT_BASE_URL = 'https://app.coderifts.com';
@@ -19,7 +19,7 @@ export class CodeRifts {
         this.timeout = options.timeout || DEFAULT_TIMEOUT;
     }
     // ─── Internal HTTP helper ──────────────────────────────────────────────
-    private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+    private async request<T>(method: string, path: string, body?: unknown, extraHeaders?: Record<string, string>): Promise<T> {
         const url = `${this.baseUrl}${path}`;
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), this.timeout);
@@ -29,6 +29,7 @@ export class CodeRifts {
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${this.apiKey}`,
+                    ...(extraHeaders || {}),
                 },
                 body: body ? JSON.stringify(body) : undefined,
                 signal: controller.signal,
@@ -245,8 +246,11 @@ export class CodeRifts {
      * `decision` / `safe_for_agent` (authorize) or `analysis_outcome` (analyze). Call
      * `analyzeChangeSet` / `authorizeChangeSet` instead to get an already-narrowed type.
      */
-    async preflightChangeSet(req: PreflightChangeSetRequest): Promise<PreflightChangeSetResponse> {
-        return this.request<PreflightChangeSetResponse>('POST', '/api/v1/preflight', req);
+    async preflightChangeSet(req: PreflightChangeSetRequest, opts?: PreflightRequestOptions): Promise<PreflightChangeSetResponse> {
+        const extra: Record<string, string> = {};
+        const token = opts && typeof opts.scmToken === 'string' ? opts.scmToken.trim() : '';
+        if (token) extra['X-Coderifts-Scm-Token'] = token;
+        return this.request<PreflightChangeSetResponse>('POST', '/api/v1/preflight', req, extra);
     }
     /**
      * Risk-only preflight (`preflight_mode: 'analyze'`). Informational — not permission;
@@ -255,7 +259,7 @@ export class CodeRifts {
      * The mode is fixed by this method, so the analyze branch is returned directly — there is no
      * `decision` / `execution_action` / `safe_for_agent` on it, by protocol.
      */
-    async analyzeChangeSet(req: PreflightChangeSetBody): Promise<AnalyzeChangeSetResponse> {
+    async analyzeChangeSet(req: PreflightChangeSetBody, opts?: PreflightRequestOptions): Promise<AnalyzeChangeSetResponse> {
         // Delegation to the single I/O site is kept deliberately. The mode is fixed here, so the
         // server returns the analyze branch of the oneOf; TypeScript cannot prove that about a
         // value it did not construct, hence the assertion (it states the protocol guarantee, it
@@ -263,7 +267,7 @@ export class CodeRifts {
         return this.preflightChangeSet({
             ...req,
             preflight_mode: 'analyze',
-        }) as Promise<AnalyzeChangeSetResponse>;
+        }, opts) as Promise<AnalyzeChangeSetResponse>;
     }
     /**
      * Operation-bound authorize preflight (`preflight_mode: 'authorize'`).
@@ -273,12 +277,12 @@ export class CodeRifts {
      * The mode is fixed by this method, so the authorize branch is returned directly:
      * `decision`, `execution_action` and `safe_for_agent` are present without narrowing.
      */
-    async authorizeChangeSet(req: PreflightChangeSetBody): Promise<AuthorizeChangeSetResponse> {
+    async authorizeChangeSet(req: PreflightChangeSetBody, opts?: PreflightRequestOptions): Promise<AuthorizeChangeSetResponse> {
         // See analyzeChangeSet: delegation preserved, assertion states the fixed-mode guarantee.
         return this.preflightChangeSet({
             ...req,
             preflight_mode: 'authorize',
-        }) as Promise<AuthorizeChangeSetResponse>;
+        }, opts) as Promise<AuthorizeChangeSetResponse>;
     }
     // ─── 9. verifyReceipt ──────────────────────────────────────────────────
     /**

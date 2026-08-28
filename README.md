@@ -8,7 +8,7 @@ Agent Governance SDK for the [CodeRifts](https://coderifts.com) API. Validate AP
 npm install @coderifts/sdk
 ```
 
-Current package: **3.8.0**.
+Current package: **3.10.0**.
 
 ## Quick Start
 

@@ -120,6 +120,60 @@ test('preflightChangeSet sends optional context.base/head (PR/commit SHAs)', asy
     });
 });
 
+test('1087 scmToken is X-Coderifts-Scm-Token only — never body, never client, never error text', async () => {
+    const SECRET = 'scm-secret-do-not-leak';
+    const orig = global.fetch;
+    const cap = {};
+    global.fetch = async (url, opts) => {
+        cap.url = url;
+        cap.opts = opts;
+        return {
+            ok: false,
+            status: 403,
+            statusText: 'Forbidden',
+            json: async () => ({ error: 'repo_inaccessible', message: 'Could not fetch bind file.' }),
+        };
+    };
+    const logs = [];
+    const origLog = console.log;
+    const origErr = console.error;
+    console.log = (...a) => { logs.push(a.map(String).join(' ')); };
+    console.error = (...a) => { logs.push(a.map(String).join(' ')); };
+    try {
+        const c = new CodeRifts({ apiKey: 'cr_test_abc' });
+        let thrown;
+        try {
+            await c.preflightChangeSet({
+                preflight_mode: 'authorize',
+                derivation: 'server',
+                context: {
+                    operation: 'merge',
+                    repository: 'group/proj',
+                    base: 'main',
+                    head: 'feat',
+                    platform: 'gitlab',
+                },
+            }, { scmToken: SECRET });
+        } catch (e) {
+            thrown = e;
+        }
+        assert.ok(thrown, 'expected 403 to throw');
+        assert.equal(cap.opts.headers['X-Coderifts-Scm-Token'], SECRET);
+        const body = JSON.parse(cap.opts.body);
+        assert.equal(body.context.platform, 'gitlab');
+        assert.equal(body.derivation, 'server');
+        assert.equal(body.scmToken, undefined);
+        assert.equal(body.scm_token, undefined);
+        assert.equal(Object.prototype.hasOwnProperty.call(c, 'scmToken'), false);
+        const hay = [String(thrown), JSON.stringify(thrown), logs.join('\n')].join('\n');
+        assert.equal(hay.includes(SECRET), false, `token leaked: ${hay}`);
+    } finally {
+        global.fetch = orig;
+        console.log = origLog;
+        console.error = origErr;
+    }
+});
+
 test('verifyReceipt -> POST /api/v1/verify-receipt with { token }', async () => {
     await withMockFetch({ valid: true, status: 'VERIFIED_CURRENT', reason: null }, async (cap) => {
         const c = new CodeRifts({ apiKey: 'cr_test_abc' });

@@ -2,6 +2,14 @@
 
 All notable changes to `@coderifts/sdk` are documented here.
 
+## [3.10.0]
+
+Additive. `preflightChangeSet` / `analyzeChangeSet` / `authorizeChangeSet` accept a
+per-request `scmToken` option, sent only as `X-Coderifts-Scm-Token` (the header
+`src/scm/index.js` `readScmToken` reads). Never stored on the client, never placed
+in the JSON body. `context.platform` is `'github' | 'gitlab' | 'bitbucket'`
+(`platformFromBody`). GitLab/Bitbucket Compare derivation uses that header.
+
 ## [3.9.0]
 
 **BREAKING, and deliberately so.** `preflightCheck().safe` changes from fail-open

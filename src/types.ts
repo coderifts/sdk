@@ -262,6 +262,8 @@ export interface Artifact {
     before: string;
     after: string;
 }
+/** SCM platform for derivation:"server" (src/server-derive-change-set.js platformFromBody). */
+export type ScmPlatform = 'github' | 'gitlab' | 'bitbucket';
 export interface PreflightChangeSetContext {
     operation?: string;
     environment?: string;
@@ -279,6 +281,20 @@ export interface PreflightChangeSetContext {
     fingerprint?: string;
     /** IntentContext parity (REST/MCP accept; server-derived audience still wins on the envelope). */
     audience?: string;
+    /**
+     * SCM platform for derivation:"server". Taken from context.platform on the
+     * server (never guessed from the repository string). Default on the server
+     * is github when omitted.
+     */
+    platform?: ScmPlatform;
+}
+/**
+ * Per-request SCM token for GitLab/Bitbucket Compare derivation.
+ * Sent ONLY as `X-Coderifts-Scm-Token` (src/scm/index.js readScmToken).
+ * Never part of the JSON body, never stored on the client.
+ */
+export interface PreflightRequestOptions {
+    scmToken?: string;
 }
 /**
  * Decision Spec v2 preflight mode (top-level; required by POST /api/v1/preflight).
