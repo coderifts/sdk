@@ -126,6 +126,14 @@ export interface AnalyzeChangeSetResponse {
       [k: string]: unknown;
     }[];
     /**
+     * Whether this decision_id was written to the decisions store. { stored:true } means GET /v1/decisions/:id will resolve. { stored:false, reason } names the degradation (storage_unava…
+     */
+    persistence?: {
+      stored?: boolean;
+      reason?: 'storage_unavailable' | 'persistence_disabled';
+      [k: string]: unknown;
+    };
+    /**
      * The mode this response was produced under. Branch on execution_action, not on this.
      */
     preflight_mode?: 'analyze' | 'authorize';
@@ -419,6 +427,14 @@ export interface AuthorizeChangeSetResponse {
       reason?: string;
       [k: string]: unknown;
     }[];
+    /**
+     * Whether this decision_id was written to the decisions store. { stored:true } means GET /v1/decisions/:id will resolve. { stored:false, reason } names the degradation (storage_unava…
+     */
+    persistence?: {
+      stored?: boolean;
+      reason?: 'storage_unavailable' | 'persistence_disabled';
+      [k: string]: unknown;
+    };
     /**
      * The mode this response was produced under. Branch on execution_action, not on this.
      */
