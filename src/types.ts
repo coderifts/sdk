@@ -421,6 +421,168 @@ export interface ChangeSetArtifactFinding {
     error?: string;
     reason?: string;
 }
+
+/* ── control_envelope (control/1.0) — HAND-WRITTEN mirror ─────────────────────
+ *
+ * Source: coderifts-app `schemas/control-envelope.v1.producer.json` (the strict
+ * PRODUCER schema for the surface `attachControlSurface` / `buildControlEnvelope`
+ * emits). Read-only transcription, field for field.
+ *
+ * WHY IT IS NOT GENERATED. `scripts/generate-preflight-response-types.js` follows
+ * `preflight-response.v2.{producer,consumer}.json`, where `control_envelope` is an
+ * OPEN object with no `$ref` to the control-envelope schema. Generation therefore
+ * produces `{ [k: string]: unknown }`. Wiring that `$ref` is an app-side change; this
+ * mirror closes the reader-facing gap without touching `src/generated`, which stays
+ * generator-owned.
+ *
+ * DRIFT IS THE KNOWN COST of a hand-written mirror (the ID804 class this package has
+ * been bitten by before). Two things bound it: the schema is the contract and this is
+ * explicitly the copy, and every field carries the producer's own optionality — the
+ * three the schema requires are required here, the six it leaves optional are optional
+ * here, and nothing has been promoted.
+ *
+ * NOT PERMISSION, and worth restating because this block is the branch source:
+ * `execution_action` is the machine directive. `decision` is the explanation label and
+ * `safe_for_agent` is not a branch key. `next_agent_step` says HOW to remediate, never
+ * WHETHER to act.
+ */
+
+/** Closed set (producer `$defs.nextAgentStepObject.action`). */
+export type NextAgentStepAction =
+    | 're_preflight'
+    | 'revert'
+    | 'migrate'
+    | 'escalate'
+    | 'await_approval';
+
+/**
+ * The decision's own remediation SUGGESTION, projected from `execution_action` +
+ * `required_action`. `null` on the allow class (CONTINUE / CONTINUE_WITH_MONITORING)
+ * — a value, not a missing measurement.
+ *
+ * The same projection is also signed INSIDE `decision_result.next_agent_step`, where
+ * `decision_body_hash` covers it. Prefer the signed copy when you hold a verified
+ * receipt; this one is the live surface and is not itself signed.
+ */
+export interface NextAgentStep {
+    /** Closed set. An unrecognised value is not permission — it is not a control field at all. */
+    action: NextAgentStepAction;
+    /** `required_action` reason_code / type, or the display string when that is all the path had. */
+    reason: string;
+    /** What must hold before the caller retries. Empty string when the path supplied none. */
+    resume_condition: string;
+    /** Tool to call after the step, or null when the next move is a human one. */
+    then_call: 'preflight_change_set' | 'verify_receipt' | null;
+}
+
+/** One remediation choice. Fresh path emits objects; a stored core emits ids only. */
+export type RequiredActionChoice =
+    | string
+    | { id: string; label: string; outcome: string };
+
+/**
+ * Branchable control core. The producer types this as a UNION on purpose: the fresh
+ * path emits this object, a stored envelope may carry the core (choices as string ids),
+ * a legacy envelope carries a bare string, and it is omitted when neither is present.
+ */
+export interface RequiredActionObject {
+    type:
+        | 'none'
+        | 'proceed_with_note'
+        | 're_preflight'
+        | 'fix_coverage'
+        | 'remediate_or_revert'
+        | 'revert'
+        | 'request_approval';
+    reason_code: string;
+    recheck_required: boolean;
+    choices?: RequiredActionChoice[];
+    resume_condition?: string;
+    /** Structured resume hint. Shape is NOT closed — fields vary by `type`. */
+    resume?: Record<string, unknown>;
+}
+
+/**
+ * What the receipt (if any) is bound to. Every slot is nullable: `null` means UNBOUND —
+ * the issuance path did not supply it. That is not a mismatch and not an error.
+ */
+export interface ReceiptViewBindsTo {
+    operation?: string | null;
+    target_id?: string | null;
+    change_fp?: string | null;
+    repository?: string | null;
+    branch?: string | null;
+    pull_request?: string | null;
+    base?: string | null;
+    head?: string | null;
+    srcmode?: string | null;
+    preflight_mode?: string | null;
+    completeness_mode?: string | null;
+    change_set_commitment?: string | null;
+    submitted_set_digest?: string | null;
+    fingerprint_binding_expected?: boolean | null;
+    authority?: Record<string, unknown> | null;
+}
+
+/**
+ * Compact VIEW of a held receipt — NOT the token. The token lives at
+ * `decision_result.receipt` / `chain_receipt`. Always present on both builders: an
+ * absent receipt yields `present: false` with nulls, never an omitted block.
+ */
+export interface ReceiptView {
+    present: boolean;
+    /** `null` = not evaluated here. Distinct from `false` = evaluated and not verified. */
+    verified: boolean | null;
+    binds_to: ReceiptViewBindsTo | null;
+    expires_at: string | null;
+    /** `null` = authorization could not be evaluated. Not authorized and not unauthorized. */
+    currently_authorized: boolean | null;
+}
+
+/**
+ * Static, honest descriptor of WHERE enforcement is decided. Always present.
+ * NOT a branch-protection probe result: both fields currently read
+ * `'not_evaluated_here'` from `buildEnforcementDescriptor`, and they are typed as open
+ * strings because the producer leaves room for a future static answer.
+ */
+export interface ControlEnforcement {
+    agent_runtime: string;
+    merge_path: string;
+    note: string;
+}
+
+/**
+ * The machine-control surface. Three fields are guaranteed; the rest are present only
+ * when the path that built the envelope had them (the stored-retrieval builder omits
+ * what the stored envelope did not carry — it never invents a value).
+ */
+export interface ControlEnvelope {
+    /** Producers currently emit the const `'control/1.0'`. */
+    control_version: string;
+    /** Compact view of a held receipt. Always present. */
+    receipt_view: ReceiptView;
+    /** Where enforcement is decided. Always present. */
+    enforcement: ControlEnforcement;
+    /** Explanation label. NOT a branch key. Omitted when the stored envelope lacked it. */
+    decision?: Decision;
+    /**
+     * DEPRECATED for control flow — branch on `execution_action`. May be forced false
+     * under coverage/degraded on the fresh path.
+     */
+    safe_for_agent?: boolean;
+    /**
+     * THE branch key. Omitted when the stored envelope does not carry it — never
+     * invented. An unrecognised value is not permission (fail closed).
+     */
+    execution_action?: ExecutionAction;
+    /** Byte-identical copy of the decision fingerprint. */
+    verdict_fingerprint?: string;
+    /** Union by design — see RequiredActionObject. Do not collapse to object-only. */
+    required_action?: RequiredActionObject | string | null;
+    /** The decision's remediation suggestion. `null` on the allow class. */
+    next_agent_step?: NextAgentStep | null;
+}
+
 /* ── preflight-response.v2 (discriminated on preflight_mode) ──────────────────
  * GENERATED from coderifts-app/schemas/preflight-response.v2.{producer,consumer}.json by
  * scripts/generate-preflight-response-types.js (ID819). Do not hand-edit
@@ -440,7 +602,6 @@ export interface ChangeSetArtifactFinding {
 import type {
     AnalyzeChangeSetResponse as GeneratedAnalyzeChangeSetResponse,
     AuthorizeChangeSetResponse as GeneratedAuthorizeChangeSetResponse,
-    PreflightChangeSetResponse as GeneratedPreflightChangeSetResponse,
 } from './generated/preflight-response.v2.js';
 export type { AnalysisOutcome, AuthorizeReceiptKind } from './generated/preflight-response.v2.js';
 /**
@@ -465,7 +626,21 @@ export type AnalyzeChangeSetResponse = GeneratedAnalyzeChangeSetResponse;
  *   `receipt_kind === 'operation_authorization'`). TypeScript has no if/then, so it is typed
  *   optional — check `receipt_kind` before relying on it.
  */
-export type AuthorizeChangeSetResponse = GeneratedAuthorizeChangeSetResponse;
+export type AuthorizeChangeSetResponse = GeneratedAuthorizeChangeSetResponse & {
+    /**
+     * Typed here rather than generated. The v2 producer schema declares
+     * `control_envelope` as an open object, so generation can only emit
+     * `{ [k: string]: unknown }` — every field reads as `unknown` and the branch key
+     * agents are told to use is the one field the types do not describe.
+     *
+     * The real shape is a separate published document,
+     * `schemas/control-envelope.v1.producer.json`, which generation does not follow
+     * (`control_envelope` carries no `$ref` to it). Until it does, this hand-written
+     * mirror is the honest place for it — and it is a MIRROR: every field below is
+     * transcribed from that schema, and none is invented here.
+     */
+    control_envelope?: ControlEnvelope;
+};
 /**
  * Union of the two preflight branches, discriminated on `preflight_mode`. Narrow before reading
  * mode-specific fields:
@@ -479,7 +654,17 @@ export type AuthorizeChangeSetResponse = GeneratedAuthorizeChangeSetResponse;
  * }
  * ```
  */
-export type PreflightChangeSetResponse = GeneratedPreflightChangeSetResponse;
+export type PreflightChangeSetResponse = AnalyzeChangeSetResponse | AuthorizeChangeSetResponse;
+/**
+ * The union is rebuilt from the two local branch names rather than aliased to
+ * `GeneratedPreflightChangeSetResponse`, so that narrowing on `preflight_mode` lands on
+ * the authorize branch WITH the typed `control_envelope` above. Aliasing the generated
+ * union re-introduced the opaque `{ [k: string]: unknown }` after the narrow — the field
+ * was typed everywhere except the one place a reader actually gets to it.
+ *
+ * `GeneratedAnalyzeChangeSetResponse` / `GeneratedAuthorizeChangeSetResponse` remain the
+ * source of every other field; only `control_envelope` is added.
+ */
 /**
  * Intended context for a verify-receipt call — the "what are you about to do?" half of the question.
  *

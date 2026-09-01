@@ -129,6 +129,16 @@ export type {
     AnalyzeChangeSetResponse,
     AuthorizeChangeSetResponse,
     PreflightChangeSetResponse,
+    // control_envelope (control/1.0) — hand-written mirror of the app's
+    // control-envelope.v1 PRODUCER schema; see src/types.ts for why it is not generated.
+    ControlEnvelope,
+    ControlEnforcement,
+    ReceiptView,
+    ReceiptViewBindsTo,
+    RequiredActionObject,
+    RequiredActionChoice,
+    NextAgentStep,
+    NextAgentStepAction,
     VerifyReceiptIntendedContext,
     VerifyReceiptResponse,
     DecisionLookupRequest,
