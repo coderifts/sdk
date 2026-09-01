@@ -555,6 +555,27 @@ export interface DecisionResultEnvelope {
     )[];
   } | null;
   /**
+   * Additive (I-1288). The decision's own remediation SUGGESTION, projected at issuance from execution_action + required_action_core — the identical pure function that fills control_en…
+   */
+  next_agent_step?: {
+    /**
+     * Closed set — src/next-agent-step.js NEXT_AGENT_ACTIONS.
+     */
+    action: 're_preflight' | 'revert' | 'migrate' | 'escalate' | 'await_approval';
+    /**
+     * required_action reason_code / type, or the display string when that is all the issuance path had.
+     */
+    reason: string;
+    /**
+     * What must hold before the caller retries. Projected from the FROZEN required_action_core, which carries no receipt-authz overlay, so this is the one subfield that may be thinner th…
+     */
+    resume_condition: string;
+    /**
+     * Tool to call after the step, or null when the next move is a human one.
+     */
+    then_call: string | null;
+  } | null;
+  /**
    * Additive (ID850 v1). BLOCK-only safe-path-forward block: aggregated from remediation-taxonomy required_changes, REEVALUATE/INPUT_CHANGED next-preflight, and human_review escalation…
    */
   remediation_transaction?: {
