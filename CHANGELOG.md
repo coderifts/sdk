@@ -2,6 +2,16 @@
 
 All notable changes to `@coderifts/sdk` are documented here.
 
+## [3.11.0] - 2026-09-02
+
+### Added
+- Generated `execution-grant-request.v2` request type from the app schema, with a byte-compare drift gate; `expected_state_token` named on the authorize request body.
+- Hand-typed `control_envelope` on the authorize branch (`next_agent_step`, enforcement, receipt view), mirroring the producer schema's optionality.
+- Regenerated `decision-result.v1` (carries the signed `next_agent_step` on non-allow decisions) and `preflight-response.v2` (adds `meta.persistence`).
+
+### Changed
+- Canonical agent rule text re-vendored (names cr.exec.v2 and ENFORCING_STRICT_V1 once; v1 teaching stays the default).
+
 ## [3.10.0]
 
 Additive. `preflightChangeSet` / `analyzeChangeSet` / `authorizeChangeSet` accept a
