@@ -332,6 +332,16 @@ export interface PreflightChangeSetCommon {
      * Server consumption: coderifts-app src/change-set.js:1256.
      */
     state_nonce?: string;
+    /**
+     * ATOMIC-profile state token (cr.exec.v2). Read by the authorize handler when minting a v2
+     * grant — see the generated `ExecutionGrantRequestV2`, whose producer schema is the source of
+     * truth for this field. The Python SDK has sent it since its v2 support landed; this type did
+     * not name it, so a TypeScript caller had no way to pass it without an `as any`.
+     *
+     * Absent is not the same as empty: the server treats `''` as the issued value, so omit the
+     * field rather than sending a blank one.
+     */
+    expected_state_token?: string;
 }
 
 /**
