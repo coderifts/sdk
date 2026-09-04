@@ -333,7 +333,7 @@ export interface DecisionResultEnvelope {
    */
   audience?: string | null;
   /**
-   * Additive v1.1. Hash of the caller's authorization scope. No producer yet; null until org/installation scope is decided (ID747). Producer awaits the org-scope decision. Never invent…
+   * Additive v1.1. sha256 of canonical JSON {operation, target, tool} authored at authorize issuance (change-set.js envelopeFields). Null on analyze (no permission issued) and when all…
    */
   authorization_scope_hash?: string | null;
   /**
@@ -470,6 +470,10 @@ export interface DecisionResultEnvelope {
    * Additive (ID637). What would upgrade a non-terminal mode (e.g. webhook_full_file_list for ATTESTED_UNVERIFIED). null when not applicable.
    */
   completeness_expected_channel?: string | null;
+  /**
+   * Additive (ID1356). Present on completeness_mode UNBOUND: the decision binds the bytes the caller sent, not the repository; the host can omit or rewrite before/after; derivation:ser…
+   */
+  completeness_disclaimer?: string | null;
   /**
    * Additive (ID811). Proven key↔repo binding for the calling tenant. Context, not verdict input: does not enter the verdict_fingerprint preimage. proven:true only after POST /api/v1/b…
    */
