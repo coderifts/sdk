@@ -317,7 +317,11 @@ export interface PreflightChangeSetCommon {
      * Default omitted/false. Analyze ignores it.
      */
     include_execution_grant?: boolean;
-    /** Mint cr.exec.v2 when 'v2'. Default omitted = v1 (compat window). */
+    /**
+     * Mint cr.exec.v2 when 'v2'. Omitting yields v1 until 2026-09-18, v2 after
+     * (x-coderifts-effective-default / x-coderifts-default-changes-at on the request schema).
+     * The authorize response meta.grant_version is the version actually issued.
+     */
     grant_version?: 'v1' | 'v2';
     executor_id?: string;
     adapter_id?: string;

@@ -110,6 +110,34 @@ export interface AnalyzeChangeSetResponse {
      */
     fingerprint_domain?: string;
     /**
+     * Wire grant_version actually issued for this authorize (explicit pin or dated default).
+     */
+    grant_version?: 'v1' | 'v2';
+    /**
+     * Implicit path only: ISO date the omit-default becomes v2.
+     */
+    grant_version_default_cutoff?: string;
+    /**
+     * Implicit path only: human-readable notice that omitting grant_version is dated.
+     */
+    grant_version_deprecation?: string;
+    /**
+     * Envelope tag actually minted (cr.exec.v1 or cr.exec.v2).
+     */
+    grant_version_envelope?: string;
+    /**
+     * true when grant_version was omitted (or unrecognised) and the dated default applied.
+     */
+    grant_version_implicit?: boolean;
+    /**
+     * Implicit path only: envelope name the dated default resolved to.
+     */
+    grant_version_resolved?: string;
+    /**
+     * Implicit path only: the unrecognised grant_version value that was ignored.
+     */
+    grant_version_unrecognised?: string;
+    /**
      * Echoed idempotency key, or null when none was supplied.
      */
     idempotency_key?: string | null;
@@ -411,6 +439,34 @@ export interface AuthorizeChangeSetResponse {
      * Domain separator the bundle fingerprint was computed under.
      */
     fingerprint_domain?: string;
+    /**
+     * Wire grant_version actually issued for this authorize (explicit pin or dated default).
+     */
+    grant_version?: 'v1' | 'v2';
+    /**
+     * Implicit path only: ISO date the omit-default becomes v2.
+     */
+    grant_version_default_cutoff?: string;
+    /**
+     * Implicit path only: human-readable notice that omitting grant_version is dated.
+     */
+    grant_version_deprecation?: string;
+    /**
+     * Envelope tag actually minted (cr.exec.v1 or cr.exec.v2).
+     */
+    grant_version_envelope?: string;
+    /**
+     * true when grant_version was omitted (or unrecognised) and the dated default applied.
+     */
+    grant_version_implicit?: boolean;
+    /**
+     * Implicit path only: envelope name the dated default resolved to.
+     */
+    grant_version_resolved?: string;
+    /**
+     * Implicit path only: the unrecognised grant_version value that was ignored.
+     */
+    grant_version_unrecognised?: string;
     /**
      * Echoed idempotency key, or null when none was supplied.
      */

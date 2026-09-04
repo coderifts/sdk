@@ -27,11 +27,11 @@ export interface ExecutionGrantRequestV2 {
    */
   include_execution_grant: boolean;
   /**
-   * src/change-set.js:1268 — `v2` selects the cr.exec.v2 issuer. Absent or any other value takes the v1 branch. `grantVersion` (camelCase) is accepted as an alias at the same line; bot…
+   * src/change-set.js:1328 — `v2` selects the cr.exec.v2 issuer. 1344 MIGRATION: absent resolves through src/grant-version-default.js — cr.exec.v1 before 2026-09-18, cr.exec.v2 on and …
    */
   grant_version?: 'v1' | 'v2';
   /**
-   * camelCase alias of grant_version, read at src/change-set.js:1268. Declared because the handler reads it, not because it is recommended.
+   * camelCase alias of grant_version, read at src/change-set.js:1268. Declared because the handler reads it, not because it is recommended. Same dated default as grant_version (no JSON…
    */
   grantVersion?: 'v1' | 'v2';
   /**
