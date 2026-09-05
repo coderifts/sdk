@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.12.0
+
+Hermetic clean-room: the app-sync parity gates now run LIVE against a coderifts-app checkout when
+present, and RECORDED against a sha256-pinned vendored snapshot when absent, never silent-skip. The
+public SDK suite is green without a private app checkout. Source content unchanged from 3.11.0 aside
+from the test harness — this release ships the fix that was already on HEAD (ca955d0) as a versioned
+package, closing the "same version, different bytes" gap the release-integrity audit flagged.
+
+
 All notable changes to `@coderifts/sdk` are documented here.
 
 ## [3.11.0] - 2026-09-02
