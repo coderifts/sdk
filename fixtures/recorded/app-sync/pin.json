@@ -1,0 +1,38 @@
+{
+  "schema": "cr.sdk.recorded-app-sync.v1",
+  "producer": {
+    "name": "coderifts-app",
+    "repo": "https://github.com/coderifts/app",
+    "commit": "c97f13ca8b0b26df9c89f59d9e520529c4e07cc6",
+    "generator": [
+      "scripts/generate-grant-request-types.js",
+      "src/agent-host-rule.js getCanonicalRuleText()",
+      "test/fixtures/v2-grant-canonical-request.json"
+    ]
+  },
+  "proves": "The published SDK files match this recording of expected app-generator / canonical output.",
+  "does_not_prove": "That coderifts-app as it stands now still emits these bytes. LIVE re-derives and fails if this recording is stale.",
+  "artifacts": [
+    {
+      "path": "v2-grant-canonical-request.json",
+      "role": "canonical-request-fixture",
+      "sha256": "674ac0ff0a1aa6af4912ff244d93c06fb30bf7b5035ce828b502e0ae63f397a1",
+      "bytes": 3516,
+      "app_path": "test/fixtures/v2-grant-canonical-request.json"
+    },
+    {
+      "path": "execution-grant-request.v2.ts",
+      "role": "generated-grant-request-type",
+      "sha256": "3b1d72e6810c645858cca26b837b546ea9634b23c9b042127b879cd362c79f75",
+      "bytes": 4817,
+      "app_path": "scripts/generate-grant-request-types.js --out"
+    },
+    {
+      "path": "policy.txt",
+      "role": "canonical-policy-text",
+      "sha256": "da9558b445930c1b3b62432950f827e699ef8be02d509ab0ddf252e2c26c55f1",
+      "bytes": 4852,
+      "app_path": "src/agent-host-rule.js getCanonicalRuleText()"
+    }
+  ]
+}

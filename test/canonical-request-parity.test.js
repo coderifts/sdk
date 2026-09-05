@@ -7,33 +7,31 @@
  * normalized reading the app handler produces from it. Byte-equivalence alone is not parity —
  * `state_nonce` is read as `nonce`, an absent `expected_state_token` is `''` and not unbound.
  *
- * NON-SILENT SKIP without the app checkout: UNPROVEN, never quietly green.
+ * LIVE when the app checkout exists (byte-parity against the live fixture; fails if the
+ * recording is stale). RECORDED against fixtures/recorded/app-sync when it does not
+ * (weaker, named). Missing/corrupt snapshot fails — never a silent skip.
  */
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const rec = require('../lib/recorded-app-sync');
+
+const pin = rec.loadPin();
+const LIVE = rec.generatorsPresent();
+const MODE = LIVE ? 'LIVE' : 'RECORDED';
 
 function fixturePath() {
-  for (const root of [
-    process.env.CODERIFTS_APP_ROOT,
-    path.join(process.env.HOME || '', 'coderifts-app'),
-    path.join(__dirname, '..', '..', 'coderifts-app'),
-  ]) {
-    const p = root && path.join(root, 'test', 'fixtures', 'v2-grant-canonical-request.json');
-    if (p && fs.existsSync(p)) return p;
-  }
-  return null;
+  if (LIVE) return rec.liveCanonicalPath();
+  return rec.snapshotPath('v2-grant-canonical-request.json');
 }
+
 const FIXTURE_PATH = fixturePath();
-const SKIP = FIXTURE_PATH
-  ? false
-  : 'coderifts-app checkout not found — set CODERIFTS_APP_ROOT. Request parity is UNPROVEN here.';
 
 /** The v2 request fields this SDK declares, read from the hand-written types. */
 function declaredRequestFields() {
-  const src = fs.readFileSync(path.join(__dirname, '..', 'src', 'types.ts'), 'utf8');
+  const src = fs.readFileSync(path.join(rec.ROOT, 'src', 'types.ts'), 'utf8');
   const found = new Set();
   for (const f of [
     'grant_version', 'executor_id', 'adapter_id', 'target_uri', 'tenant_id',
@@ -44,13 +42,14 @@ function declaredRequestFields() {
   return found;
 }
 
-describe('canonical v2 request parity (TS SDK)', { skip: SKIP }, () => {
+describe(`canonical v2 request parity (TS SDK) ${rec.modeBanner(MODE)}`, () => {
   const fixture = JSON.parse(fs.readFileSync(FIXTURE_PATH, 'utf8'));
   const { request, reading } = fixture;
   const declared = declaredRequestFields();
 
   it('the fixture is the generated one', () => {
     assert.equal(fixture.schema, 'coderifts.v2-grant-canonical-request.v1');
+    assert.ok(pin);
   });
 
   it('every field this SDK declares is a field the canonical request carries', () => {
@@ -91,6 +90,19 @@ describe('canonical v2 request parity (TS SDK)', { skip: SKIP }, () => {
     for (const m of missing) {
       assert.ok(typeof fixture.reading[m] !== 'undefined' || m in request,
         `${m} is neither declared by the SDK nor explained by the fixture`);
+    }
+  });
+
+  it('LIVE recording is not stale / RECORDED is labeled weaker', () => {
+    const snap = rec.snapshotBytes('v2-grant-canonical-request.json');
+    if (LIVE) {
+      const liveBytes = fs.readFileSync(rec.liveCanonicalPath());
+      assert.ok(
+        snap.equals(liveBytes),
+        'RECORDED snapshot STALE vs live canonical fixture — regenerate fixtures/recorded/app-sync',
+      );
+    } else {
+      assert.equal(MODE, 'RECORDED');
     }
   });
 });

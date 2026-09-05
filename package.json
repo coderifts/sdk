@@ -30,7 +30,7 @@
     "build": "npm run clean && npm run build:cjs && npm run build:esm && npm run build:markers",
     "pretest": "npm run build",
     "test:types": "tsc -p tsconfig.typetest.json",
-    "test": "npm run test:types && node --test test/*.test.js",
+    "test": "npm run test:types && node --test --test-concurrency=1 test/*.test.js",
     "prepublishOnly": "npm run build"
   },
   "keywords": [

@@ -2,8 +2,9 @@
  * CodeRifts agent-host policy text.
  *
  * Vendored from coderifts-app `src/agent-host-rule.js` `getCanonicalRuleText()`.
- * Drift-gated by `test/policy-vendored-sync.test.js` (byte-equal to the app
- * canonical text; missing app checkout fails loud — never skip).
+ * Drift-gated by `test/policy-vendored-sync.test.js` (LIVE byte-equal to the app
+ * canonical text; RECORDED against fixtures/recorded/app-sync when the app is
+ * absent — weaker, named; missing/corrupt snapshot fails — never skip).
  *
  * This proves the TEXT is present when injected/detected, not that the model
  * read or obeyed it.
