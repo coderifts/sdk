@@ -63,8 +63,18 @@ describe('scope_hash — one rule, four transcriptions', () => {
       'the separator inside a payload must be a vector');
   });
 
-  it('TS SDK === shared JS core', () => {
-    const { computeScopeHash: core } = require(path.join(CORE, 'verify-grant.js'));
+  it('TS SDK === shared JS core', (t) => {
+    // 1435 — the ONE cross-repo require in this file that had no existence check. Every other
+    // comparison here skips honestly when its sibling is absent; this one threw MODULE_NOT_FOUND,
+    // so a clean clone of the SDK failed a test about a repo it does not contain. A missing
+    // sibling is "not compared", never "compared and wrong".
+    const file = path.join(CORE, 'verify-grant.js');
+    if (!fs.existsSync(file)) {
+      t.skip(`receipt-verifier is not checked out beside this repo (${CORE}) — `
+        + 'the SDK vectors above ran; core parity was not compared');
+      return;
+    }
+    const { computeScopeHash: core } = require(file);
     for (const v of VECTORS) {
       assert.equal(sdk.computeScopeHash(v), core(v), `${v.name}: SDK and core differ`);
     }
