@@ -19,7 +19,10 @@ const ROOT = path.resolve(__dirname, '..');
 const rec = require('../lib/recorded-app-sync');
 
 const GATES = [
-  'canonical-request-parity.test.js',
+  // Renamed in 1425: the regex parity oracle was deleted and replaced by compile-time +
+  // captured-wire checks. The GATE property is unchanged — this file still fails closed when the
+  // recorded snapshot is missing or corrupt.
+  'canonical-v2-request.test.js',
   'generated-grant-request-sync.test.js',
   'policy-vendored-sync.test.js',
 ];
@@ -107,7 +110,7 @@ describe('1380 — corrupt snapshot exits 1', () => {
       const { env } = cleanRoomEnv();
       const r = spawnSync(
         process.execPath,
-        ['--test', path.join(ROOT, 'test', 'canonical-request-parity.test.js')],
+        ['--test', path.join(ROOT, 'test', 'canonical-v2-request.test.js')],
         { encoding: 'utf8', env: childEnv(env), cwd: ROOT },
       );
       assert.equal(r.status, 1, r.stdout + r.stderr);

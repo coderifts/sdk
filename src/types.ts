@@ -346,6 +346,30 @@ export interface PreflightChangeSetCommon {
      * field rather than sending a blank one.
      */
     expected_state_token?: string;
+    /**
+     * The caller's claimed policy identity, BOUND into the signed v2 grant as `policy_hash`
+     * (coderifts-app src/change-set.js, 1206 variant A).
+     *
+     * MEASURED 1425: the generated `ExecutionGrantRequestV2` has carried this field, and the
+     * server has read it, while THIS hand-written type — the one a TypeScript caller actually
+     * writes against — did not name it. So the SDK could describe the field and not let anyone
+     * send it without an `as any`. Two type surfaces disagreeing about the same wire.
+     *
+     * Absent yields the issuer's `sha256('')` default. A verifier that knows which policy it
+     * expects can then refuse a mismatch; a field that looks bound and is not would be worse
+     * than an absent one, because a reader of the token cannot tell the difference.
+     */
+    policy_hash?: string;
+    /**
+     * TOP-LEVEL audience for the v2 grant, hashed into the signed body as `audience_hash`.
+     *
+     * NOT the same field as `context.audience`. That one is IntentContext parity and the comment
+     * on it says the server-derived audience still wins on the envelope; this one is the grant's
+     * audience binding. The regex parity oracle deleted in this round could not tell them apart —
+     * it matched `audience?:` anywhere in this file, found the IntentContext member, and credited
+     * the SDK with declaring a field it did not have.
+     */
+    audience?: string;
 }
 
 /**
