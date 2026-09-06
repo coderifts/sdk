@@ -31,7 +31,8 @@
     "pretest": "npm run build",
     "test:types": "tsc -p tsconfig.typetest.json",
     "test": "npm run test:types && node --test --test-concurrency=1 test/*.test.js",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "check:packed": "node scripts/check-packed-install.js"
   },
   "keywords": [
     "coderifts",
