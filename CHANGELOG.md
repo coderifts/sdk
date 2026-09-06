@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.13.2
+
+Cross-language scope-hash parity is now hermetic: a pinned golden fixture (18 vectors, byte-identical in the TS and Python packages) lets each side match the golden set with no sibling checkout and no $HOME dependency. prepublishOnly is build && test so parity blocks a release. Includes the earlier fix where the cross-repo parity test skips cleanly when receipt-verifier is not checked out beside the package (was a hard failure on a clean clone).
+
+
 ## 3.12.0
 
 Hermetic clean-room: the app-sync parity gates now run LIVE against a coderifts-app checkout when
