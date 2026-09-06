@@ -1,0 +1,197 @@
+'use strict';
+
+/**
+ * authorize()'s verdict IS the core's verdict (1463).
+ *
+ * The SDK does not get its own opinion about authorization. `authorize` shapes a TS caller's
+ * inputs — PEM strings, plain objects — and hands them to the vendored predicate; the decision
+ * comes back unchanged. This asserts the PROPERTY rather than today's answers: on a shared fixture
+ * set, whatever the core says, authorize says. An edit to either side that moves one and not the
+ * other fails here, even if both answers look plausible alone.
+ *
+ * `verifyExecutionGrant` is deliberately exercised alongside, because the two answer DIFFERENT
+ * questions and the point of this release is that both remain askable: a token can verify
+ * perfectly while the authorization is COMMIT_UNPROVEN.
+ */
+
+const { describe, it } = require('node:test');
+const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const sdk = require('../dist/cjs/index.js');
+const {
+  verifiedExecutionBinding,
+} = require('../src/vendor/receipt-verifier/verified-execution-binding.js');
+
+const sha = (v) => `sha256:${crypto.createHash('sha256').update(String(v), 'utf8').digest('hex')}`;
+const b64 = (o) => Buffer.from(JSON.stringify(o), 'utf8').toString('base64url');
+
+const issuer = crypto.generateKeyPairSync('ed25519');
+const executor = crypto.generateKeyPairSync('ed25519');
+const other = crypto.generateKeyPairSync('ed25519');
+const IK = 'ISS';
+const EK = 'EXEC';
+const JTI = 'jti-parity';
+const SCOPE = sha('cs');
+const RD = sha('receipt');
+
+const KEYRING = {
+  keys: [{ kid: IK, public_key_pem: issuer.publicKey.export({ type: 'spki', format: 'pem' }), status: 'active' }],
+};
+const REGISTRY = {
+  keys: [{
+    kid: EK, public_key_pem: executor.publicKey.export({ type: 'spki', format: 'pem' }),
+    status: 'active', valid_from: null, retired_at: null,
+  }],
+};
+/** The same keyring in the core's own shape, so the two calls are given equal material. */
+const RING = new Map(KEYRING.keys.map((k) => [k.kid, {
+  publicKey: crypto.createPublicKey(k.public_key_pem), status: 'active', retired_at: null, compromised_at: null,
+}]));
+
+function grant(over = {}, key = issuer.privateKey) {
+  const body = {
+    v: 'cr.exec.v1', kid: IK, receipt_digest: RD, scope_hash: SCOPE, audience: 'v:x',
+    operation: 'merge', target_id: 't', jti: JTI,
+    iat: '2026-01-01T00:00:00Z', exp: '2099-01-01T00:00:00Z', ...over,
+  };
+  const parts = ['crexec.v1', body.kid, body.receipt_digest, body.scope_hash, body.audience,
+    body.operation, body.target_id, body.jti, body.iat, body.exp];
+  return `${b64(body)}.${crypto.sign(null, Buffer.from(parts.join('|'), 'utf8'), key).toString('base64url')}`;
+}
+const REAL = grant();
+const FORGED = `${REAL.split('.')[0]}.${Buffer.from('NOPE').toString('base64url')}`;
+const WRONG_KEY = grant({}, other.privateKey);
+const OTHER_RUN = grant({ jti: 'jti-other', scope_hash: sha('other') });
+
+const attBody = {
+  v: sdk.ATTEST_VERSION, executor_kid: EK, grant_jti: JTI, receipt_digest: RD,
+  scope_hash: SCOPE, committed_at: new Date(Date.now() - 1000).toISOString(),
+};
+const ATTEST = [sdk.ATTEST_ENVELOPE_TAG, EK, b64(attBody),
+  crypto.sign(null, Buffer.from(sdk.attestSigningInput(attBody), 'utf8'), executor.privateKey).toString('base64url'),
+].join('|');
+
+/** The SAME evidence, asked twice: once through the SDK, once through the core directly. */
+function bothWays({ token = REAL, keyring = KEYRING, committed = true, attest = ATTEST, required } = {}) {
+  const viaSdk = sdk.authorize({
+    receipt: { verified: true },
+    grant: { token, keyring },
+    attestation: { token: attest, registry: REGISTRY },
+    committed,
+    ...(required ? { required } : {}),
+  });
+  const viaCore = verifiedExecutionBinding({
+    receipt: { verified: true },
+    grant: { token, keyring: keyring ? RING : null, expectedKid: null },
+    attestation: { token: attest, registry: REGISTRY, verify: sdk.verifyExecutionAttestation },
+    committed,
+    ...(required ? { required } : { required: ['issuer_grant', 'executor_attestation'] }),
+  });
+  return { sdk: viaSdk, core: viaCore };
+}
+
+const CASES = {
+  'a real issuer grant': {},
+  'a forged signature': { token: FORGED },
+  'a grant signed by the wrong key': { token: WRONG_KEY },
+  'a real grant from another run': { token: OTHER_RUN },
+  'no grant at all': { token: '' },
+  'a real grant with no keyring': { keyring: null },
+  'a real grant, not committed': { committed: false },
+  'no attestation': { attest: null },
+  'one_run_root demanded but absent': { required: ['issuer_grant', 'one_run_root'] },
+  'provider_witness demanded but absent': { required: ['issuer_grant', 'provider_witness'] },
+};
+
+describe('authorize() quotes the core predicate', () => {
+  for (const [name, over] of Object.entries(CASES)) {
+    it(`PARITY: ${name}`, () => {
+      const r = bothWays(over);
+      assert.equal(r.sdk.authorized_and_committed, r.core.authorized_and_committed,
+        `verdicts differ on "${name}"`);
+      assert.equal(r.sdk.state, r.core.state, `states differ on "${name}"`);
+      assert.deepEqual(r.sdk.shortfalls, r.core.shortfalls, `shortfalls differ on "${name}"`);
+    });
+  }
+
+  it('the positive control is TRUE, so parity is not agreement on refusing everything', () => {
+    const r = bothWays();
+    assert.equal(r.sdk.authorized_and_committed, true, JSON.stringify(r.sdk.shortfalls));
+    assert.equal(r.sdk.state, 'AUTHORIZED_AND_COMMITTED');
+  });
+
+  it('the named states are reachable and distinct — a boolean would lose all of this', () => {
+    assert.equal(bothWays({ token: FORGED }).sdk.state, 'UNAUTHORIZED');
+    assert.equal(bothWays({ attest: null }).sdk.state, 'COMMIT_UNPROVEN');
+    assert.equal(bothWays({ committed: false }).sdk.state, 'NOT_COMMITTED');
+    assert.equal(bothWays({ required: ['issuer_grant', 'one_run_root'] }).sdk.state, 'ONE_RUN_UNPROVEN');
+    assert.equal(bothWays({ required: ['issuer_grant', 'provider_witness'] }).sdk.state, 'RECORDED_UNWITNESSED');
+  });
+
+  it('ADDITIVE: verifyExecutionGrant still answers its OWN question, unchanged', () => {
+    // A token can verify perfectly while the authorization is COMMIT_UNPROVEN. That the two
+    // answers differ on the same bytes is the reason both surfaces exist.
+    const v = sdk.verifyExecutionGrant(REAL, {
+      publicKeyPem: KEYRING.keys[0].public_key_pem,
+    });
+    assert.equal(v.valid, true, `${v.status}/${v.reason}`);
+    assert.equal(v.status, 'GRANT_CURRENT');
+    assert.equal(bothWays({ attest: null }).sdk.state, 'COMMIT_UNPROVEN');
+  });
+
+  it('the exported state constants match the states the core actually returns', () => {
+    const seen = new Set(Object.values(CASES).map((o) => bothWays(o).sdk.state));
+    for (const s of seen) {
+      assert.ok(Object.values(sdk.AUTHORIZATION_STATE).includes(s), `${s} is not exported`);
+    }
+  });
+});
+
+describe('the vendored core is receipt-verifier\'s, byte for byte', () => {
+  const DIR = path.join(__dirname, '..', 'src', 'vendor', 'receipt-verifier');
+  const pinned = () => fs.readFileSync(path.join(DIR, 'VENDOR.sha256'), 'utf8').split('\n')
+    .filter((l) => l && !l.startsWith('#'))
+    .map((l) => { const [sha256, file] = l.trim().split(/\s+/); return { sha256, file }; });
+
+  it('every vendored file matches its pinned digest', () => {
+    const rows = pinned();
+    assert.ok(rows.length >= 7, 'the pin must cover the whole module closure');
+    for (const { sha256, file } of rows) {
+      const bytes = fs.readFileSync(path.join(DIR, file));
+      assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'), sha256, file);
+    }
+  });
+
+  it('the pin names a revision per file, and nothing reaches outside the vendor dir', () => {
+    const header = fs.readFileSync(path.join(DIR, 'VENDOR.sha256'), 'utf8');
+    for (const { file } of pinned()) {
+      assert.match(header, new RegExp(`#\\s+${file.replace(/[./]/g, '\\$&')}\\s+[0-9a-f]{40}`),
+        `${file} has no revision in the pin header`);
+      const src = fs.readFileSync(path.join(DIR, file), 'utf8');
+      for (const m of src.matchAll(/require\('(\.[^']*)'\)/g)) {
+        assert.ok(!m[1].startsWith('../'), `${file} requires outside the vendor dir: ${m[1]}`);
+      }
+    }
+  });
+
+  it('the vendored bytes equal their pinned upstream revision, when the source repo is present', (t) => {
+    const SOURCE = path.join(process.env.HOME || '', 'receipt-verifier');
+    if (!fs.existsSync(SOURCE)) {
+      t.skip('receipt-verifier is not checked out beside this repo — the pin was verified, '
+        + 'upstream parity was not');
+      return;
+    }
+    const { spawnSync } = require('node:child_process');
+    const header = fs.readFileSync(path.join(DIR, 'VENDOR.sha256'), 'utf8');
+    for (const { file } of pinned()) {
+      const m = header.match(new RegExp(`#\\s+${file.replace(/[./]/g, '\\$&')}\\s+([0-9a-f]{40})`));
+      const r = spawnSync('git', ['-C', SOURCE, 'show', `${m[1]}:${file}`], { maxBuffer: 1 << 24 });
+      assert.equal(r.status, 0, `${file}@${m[1]} is not in receipt-verifier's history`);
+      assert.ok(fs.readFileSync(path.join(DIR, file)).equals(r.stdout),
+        `${file} has drifted from receipt-verifier@${m[1].slice(0, 7)}`);
+    }
+  });
+});

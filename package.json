@@ -27,12 +27,13 @@
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:markers": "node scripts/write-dist-type-markers.mjs",
-    "build": "npm run clean && npm run build:cjs && npm run build:esm && npm run build:markers",
+    "build": "npm run clean && npm run build:cjs && npm run build:esm && npm run build:vendor && npm run build:markers",
     "pretest": "npm run build",
     "test:types": "tsc -p tsconfig.typetest.json",
     "test": "npm run test:types && node --test --test-concurrency=1 test/*.test.js",
     "prepublishOnly": "npm run build && npm test",
-    "check:packed": "node scripts/check-packed-install.js"
+    "check:packed": "node scripts/check-packed-install.js",
+    "build:vendor": "node scripts/copy-vendor.mjs"
   },
   "keywords": [
     "coderifts",

@@ -41,6 +41,22 @@ export {
     isIssuedInFuture,
 } from './leeway.js';
 export type { ExpiryLeewayContext } from './leeway.js';
+// ── THE AUTHORIZATION QUESTION (1463) ────────────────────────────────────────────────────────
+//
+// ADDITIVE. `verifyExecutionGrant` below is unchanged and still answers "is this token authentic,
+// current and bound to what I intended". `authorize` answers a different question — "may this be
+// treated as authorized AND committed" — by quoting the shared core predicate, so a TS caller
+// reads the same named states the guard, Prove, conformance and the contract-gate print.
+export { authorize, AUTHORIZATION_STATE } from './authorize.js';
+export type {
+    AuthorizeInput,
+    AuthorizeResult,
+    AuthorizationState,
+    AuthorityName,
+    AuthorityResult,
+    PinnedKeyring,
+} from './authorize.js';
+
 export {
     verifyExecutionGrant,
     computeScopeHash,
