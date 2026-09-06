@@ -5,7 +5,7 @@
  * Mirrors coderifts-app/src/verdict-core/execution-attestation.js.
  * Customer-pinned registry; CodeRifts never holds executor keys.
  */
-import { createPublicKey, verify as ed25519verify } from 'crypto';
+import { createHash, createPublicKey, verify as ed25519verify } from 'crypto';
 import { CLOCK_SKEW_LEEWAY_MS, isIssuedInFuture } from './leeway.js';
 
 export const ATTEST_VERSION = 'cr.exec.attest.v1';
@@ -154,6 +154,68 @@ function nonceOf(obj: Record<string, unknown> | null | undefined): string {
     return typeof obj.state_nonce === 'string' && obj.state_nonce.length > 0 ? obj.state_nonce : '';
 }
 
+const sha256pref = (v: string): string =>
+    `sha256:${createHash('sha256').update(v, 'utf8').digest('hex')}`;
+
+/** sha256 of the empty string — what a v2 issuer writes into a hash slot it had no value for. */
+const EMPTY_SHA256 = sha256pref('');
+
+/**
+ * The grant's identity, in ONE vocabulary, whichever version the grant speaks.
+ *
+ * ── WHAT WAS MEASURED (1425 follow-up) ──────────────────────────────────────────────────────
+ *
+ * The cross-check below read `gf.jti`, `gf.scope_hash` and `gf.receipt_digest` — all cr.exec.v1
+ * names. A cr.exec.v2 grant carries `grant_id`, `after_payload_hash` and `receipt_hash`, so every
+ * one of them read `undefined`. Reproduced against the real server grant from the end-to-end
+ * capture, with an attestation that genuinely names it:
+ *
+ *     ATTEST_UNBOUND / grant_jti_mismatch
+ *
+ * A correct pair, refused. That is a functional gap on the v2 path, not a security one — but it is
+ * the path the authorization-continuity chain runs on, so nothing there could ever have
+ * cross-checked.
+ *
+ * ── THE NONCE IS NOT A RENAME ───────────────────────────────────────────────────────────────
+ *
+ * The other three fields are the same value under a different name. The nonce is not: v1 signs the
+ * RAW `state_nonce`, v2 signs `nonce_hash` and never carries a preimage. The attestation carries
+ * the raw nonce, so the v2 comparison hashes the attestation's value and compares hash-to-hash.
+ * That is a real binding, not a skipped one — and skipping it would have been the tempting
+ * shortcut, since the field "isn't there".
+ */
+function grantIdentity(gf: Record<string, unknown>): {
+    v2: boolean;
+    jti: string;
+    scope_hash: string;
+    receipt_digest: string;
+    nonce_hash: string | null;
+    state_nonce: string;
+} {
+    const str = (x: unknown): string => (typeof x === 'string' ? x : '');
+    // ABSENT `v` IS v1. `grant_fields` is a hand-supplied object with v1 field names and no
+    // version marker, and every existing caller passes one of those — defaulting anywhere else
+    // would change their behaviour for a field they never sent.
+    if (gf.v === 'cr.exec.v2') {
+        return {
+            v2: true,
+            jti: str(gf.grant_id),
+            scope_hash: str(gf.after_payload_hash),
+            receipt_digest: str(gf.receipt_hash),
+            nonce_hash: str(gf.nonce_hash) || null,
+            state_nonce: '',
+        };
+    }
+    return {
+        v2: false,
+        jti: str(gf.jti),
+        scope_hash: str(gf.scope_hash),
+        receipt_digest: str(gf.receipt_digest),
+        nonce_hash: null,
+        state_nonce: nonceOf(gf),
+    };
+}
+
 export function verifyExecutionAttestation(
     token: string,
     opts: {
@@ -247,16 +309,28 @@ export function verifyExecutionAttestation(
             return fail('ATTEST_UNBOUND', 'grant_unparseable', payload);
         }
         if (gf && !('unparseable' in gf)) {
-            if (String(gf.jti || '') !== payload.grant_jti) {
+            const id = grantIdentity(gf as Record<string, unknown>);
+            if (id.jti !== payload.grant_jti) {
                 return fail('ATTEST_UNBOUND', 'grant_jti_mismatch', payload);
             }
-            if (String(gf.scope_hash || '') !== payload.scope_hash) {
+            if (id.scope_hash !== payload.scope_hash) {
                 return fail('ATTEST_UNBOUND', 'scope_hash_mismatch', payload);
             }
-            if (nonceOf(gf) !== nonceOf(payload)) {
+            if (id.v2) {
+                // HASH TO HASH. The attestation holds the preimage, the grant holds only its
+                // sha256, so the attestation's value is hashed here. An ATOMIC grant paired with
+                // an attestation that carries no nonce is a mismatch, exactly as in v1 — both
+                // empty passes, one empty does not.
+                const attHash = nonceOf(payload as unknown as Record<string, unknown>)
+                    ? sha256pref(nonceOf(payload as unknown as Record<string, unknown>))
+                    : EMPTY_SHA256;
+                if ((id.nonce_hash || EMPTY_SHA256) !== attHash) {
+                    return fail('ATTEST_UNBOUND', 'state_nonce_mismatch', payload);
+                }
+            } else if (id.state_nonce !== nonceOf(payload as unknown as Record<string, unknown>)) {
                 return fail('ATTEST_UNBOUND', 'state_nonce_mismatch', payload);
             }
-            if (gf.receipt_digest && gf.receipt_digest !== payload.receipt_digest) {
+            if (id.receipt_digest && id.receipt_digest !== payload.receipt_digest) {
                 return fail('ATTEST_UNBOUND', 'receipt_digest_mismatch', payload);
             }
         }
