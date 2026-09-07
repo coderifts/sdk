@@ -9,11 +9,11 @@
 #
 #   arity.js                       5ef4dfb19d0ef60d93fe4282f28e38182fc237f5
 #   verify.js                      e0806f31a9db11ba5ad7a6075ff2b5d0e517eb83
-#   verify-grant.js                WORKING-TREE
+#   verify-grant.js                a472bf9073781cba25d83c7d1406b1a7c4af0b94
 #   verify-prove-transcript.js     724aa9ae8171f1acf629c3c6b4879dc056575f20
 #   verify-evidence.js             16cf6654ff3fa6d6293eb4a425bbe7fb6999ee26
 #   evidence-root.js               16cf6654ff3fa6d6293eb4a425bbe7fb6999ee26
-#   verified-execution-binding.js  WORKING-TREE
+#   verified-execution-binding.js  1e41542296551139c41e2d4b4cff2e67bc42aa06
 
 721fcac58b960b5e2aa1af91edb6cfc87ebe828a6da73879967ef79a1ca474e8  arity.js
 348d3f851cd79bf63298b51da422d11be980820576ab0bf0a2990b9f007d6249  verify.js
