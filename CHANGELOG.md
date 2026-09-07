@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.13.3
+
+Adds authorize(), the authorization decision from the shared verified-execution-binding core (four authorities, only their intersection commits, with named shortfall states), additive alongside verifyExecutionGrant. The vendored core carries the attestation-receipt binding (a grant and an attestation from different receipts read COMMIT_UNPROVEN), the caller-boolean fix (a bare boolean reads RECORDED_UNWITNESSED), and the v1 grant admitting the optional signed ATOMIC fields; the pins name real revisions per file via git show.
+
+
 ## 3.13.2
 
 Cross-language scope-hash parity is now hermetic: a pinned golden fixture (18 vectors, byte-identical in the TS and Python packages) lets each side match the golden set with no sibling checkout and no $HOME dependency. prepublishOnly is build && test so parity blocks a release. Includes the earlier fix where the cross-repo parity test skips cleanly when receipt-verifier is not checked out beside the package (was a hard failure on a clean clone).
