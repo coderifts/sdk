@@ -168,7 +168,10 @@ describe('the vendored core is receipt-verifier\'s, byte for byte', () => {
   it('the pin names a revision per file, and nothing reaches outside the vendor dir', () => {
     const header = fs.readFileSync(path.join(DIR, 'VENDOR.sha256'), 'utf8');
     for (const { file } of pinned()) {
-      assert.match(header, new RegExp(`#\\s+${file.replace(/[./]/g, '\\$&')}\\s+[0-9a-f]{40}`),
+      // WORKING-TREE is an allowed token for a file vendored ahead of its upstream commit — a
+      // named state, and the next test compares those bytes against the sibling working tree
+      // rather than skipping them.
+      assert.match(header, new RegExp(`#\\s+${file.replace(/[./]/g, '\\$&')}\\s+([0-9a-f]{40}|WORKING-TREE)`),
         `${file} has no revision in the pin header`);
       const src = fs.readFileSync(path.join(DIR, file), 'utf8');
       for (const m of src.matchAll(/require\('(\.[^']*)'\)/g)) {
@@ -187,7 +190,15 @@ describe('the vendored core is receipt-verifier\'s, byte for byte', () => {
     const { spawnSync } = require('node:child_process');
     const header = fs.readFileSync(path.join(DIR, 'VENDOR.sha256'), 'utf8');
     for (const { file } of pinned()) {
-      const m = header.match(new RegExp(`#\\s+${file.replace(/[./]/g, '\\$&')}\\s+([0-9a-f]{40})`));
+      const m = header.match(new RegExp(`#\\s+${file.replace(/[./]/g, '\\$&')}\\s+([0-9a-f]{40}|WORKING-TREE)`));
+      assert.ok(m, `${file} has no revision in the pin header`);
+      if (m[1] === 'WORKING-TREE') {
+        const up = path.join(SOURCE, file);
+        assert.ok(fs.existsSync(up), `${file} is pinned WORKING-TREE but is absent upstream`);
+        assert.ok(fs.readFileSync(path.join(DIR, file)).equals(fs.readFileSync(up)),
+          `${file} has drifted from receipt-verifier's working tree`);
+        continue;
+      }
       const r = spawnSync('git', ['-C', SOURCE, 'show', `${m[1]}:${file}`], { maxBuffer: 1 << 24 });
       assert.equal(r.status, 0, `${file}@${m[1]} is not in receipt-verifier's history`);
       assert.ok(fs.readFileSync(path.join(DIR, file)).equals(r.stdout),
