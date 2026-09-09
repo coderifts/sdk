@@ -203,12 +203,34 @@ describe('the vendored core is receipt-verifier\'s, byte for byte', () => {
     // comparison is against v1.0.0, so a sibling on another branch, or with uncommitted edits,
     // can no longer make this pass.
     const { spawnSync } = require('node:child_process');
-    const TAG = 'v1.0.0';
+    const TAG = 'v1.0.1';
     const peeled = spawnSync('git', ['-C', SOURCE, 'rev-parse', `${TAG}^{commit}`], { encoding: 'utf8' });
     assert.equal(peeled.status, 0,
       `receipt-verifier has no ${TAG} tag — the vendored core cannot be traced to a release`);
     assert.equal(peeled.stdout.trim(), '51a8224439959a5b46c0b09e9a2cd67117f05d56',
       `${TAG} points somewhere other than the commit this pin names`);
+
+    // ── THE TAG IS VERIFIED, NOT MERELY RESOLVED ────────────────────────────────────────────
+    //
+    // `rev-parse` proves the tag points where the pin says. It does not prove the tag is the one
+    // the releaser cut: an unsigned tag is a name anyone with push access can move, and this check
+    // would keep passing after it moved, as long as the bytes moved with it.
+    //
+    // v1.0.1 is annotated and SSH-signed, so the pin resolves to an IDENTITY. This asserts that
+    // the signature verifies AND that it verifies against the fingerprint recorded in the pin —
+    // "signed" alone would accept a signature by anyone at all.
+    //
+    // MEASURED: `git tag -v` exits 0 and writes its verdict to STDERR, not stdout. A check reading
+    // stdout finds nothing there and can be written to "pass" on a tag it never verified.
+    const SIGNER_FPR = 'SHA256:7yRXTm9zKGicfFpzL+7lpwFoPaoSwxAJlabB3jwxw2Y';
+    const sig = spawnSync('git', ['-C', SOURCE, 'tag', '-v', TAG], { encoding: 'utf8' });
+    const verdict = `${sig.stdout || ''}${sig.stderr || ''}`;
+    assert.equal(sig.status, 0, `${TAG} does not verify as a signed tag:\n${verdict}`);
+    assert.match(verdict, /Good .*signature/,
+      `${TAG} carries no good signature — the vendored core cannot be traced to a signed release`);
+    assert.ok(verdict.includes(SIGNER_FPR),
+      `${TAG} is signed, but NOT by the key this pin records (${SIGNER_FPR}):\n${verdict}`);
+
     let compared = 0;
     for (const { file } of pinned()) {
       const r = spawnSync('git', ['-C', SOURCE, 'show', `${TAG}:${file}`], { maxBuffer: 1 << 24 });
