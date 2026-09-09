@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.14.0
+
+Adds verifyReceipt as a local offline verify: the full Ed25519 verification runs in process over bytes in memory — no network, no API key — using the vendored receipt-verifier core, returning the same verdict as the public receipt-verifier and the conformance CLI. The former network method is verifyReceiptViaServer, a convenience mirror for revocation and clock checks whose answer is not the offline proof. The vendored core is re-pinned to receipt-verifier v1.0.0 (51a8224); verify-grant.js admits the reserved inert v2 fields (call_hash, executor_image_digest). authorize() is unchanged.
+
+
 ## 3.13.3
 
 Adds authorize(), the authorization decision from the shared verified-execution-binding core (four authorities, only their intersection commits, with named shortfall states), additive alongside verifyExecutionGrant. The vendored core carries the attestation-receipt binding (a grant and an attestation from different receipts read COMMIT_UNPROVEN), the caller-boolean fix (a bare boolean reads RECORDED_UNWITNESSED), and the v1 grant admitting the optional signed ATOMIC fields; the pins name real revisions per file via git show.
