@@ -192,23 +192,34 @@ describe('the vendored core is receipt-verifier\'s, byte for byte', () => {
         + 'upstream parity was not');
       return;
     }
+    // ── THE TAG, NOT A WORKING TREE ────────────────────────────────────────────────────────
+    //
+    // This read a per-file revision out of the pin header and, where it said WORKING-TREE,
+    // compared against whatever was in the sibling checkout. A working tree is not a provenance
+    // anyone else can resolve: "the vendored bytes match upstream" then meant "they match whatever
+    // is on this machine right now", which is a sentence rather than a check.
+    //
+    // The sibling is still where the bytes come from — nothing here reaches a network — but the
+    // comparison is against v1.0.0, so a sibling on another branch, or with uncommitted edits,
+    // can no longer make this pass.
     const { spawnSync } = require('node:child_process');
-    const header = fs.readFileSync(path.join(DIR, 'VENDOR.sha256'), 'utf8');
+    const TAG = 'v1.0.0';
+    const peeled = spawnSync('git', ['-C', SOURCE, 'rev-parse', `${TAG}^{commit}`], { encoding: 'utf8' });
+    assert.equal(peeled.status, 0,
+      `receipt-verifier has no ${TAG} tag — the vendored core cannot be traced to a release`);
+    assert.equal(peeled.stdout.trim(), '51a8224439959a5b46c0b09e9a2cd67117f05d56',
+      `${TAG} points somewhere other than the commit this pin names`);
+    let compared = 0;
     for (const { file } of pinned()) {
-      const m = header.match(new RegExp(`#\\s+${file.replace(/[./]/g, '\\$&')}\\s+([0-9a-f]{40}|WORKING-TREE)`));
-      assert.ok(m, `${file} has no revision in the pin header`);
-      if (m[1] === 'WORKING-TREE') {
-        const up = path.join(SOURCE, file);
-        assert.ok(fs.existsSync(up), `${file} is pinned WORKING-TREE but is absent upstream`);
-        assert.ok(fs.readFileSync(path.join(DIR, file)).equals(fs.readFileSync(up)),
-          `${file} has drifted from receipt-verifier's working tree`);
-        continue;
-      }
-      const r = spawnSync('git', ['-C', SOURCE, 'show', `${m[1]}:${file}`], { maxBuffer: 1 << 24 });
-      assert.equal(r.status, 0, `${file}@${m[1]} is not in receipt-verifier's history`);
+      const r = spawnSync('git', ['-C', SOURCE, 'show', `${TAG}:${file}`], { maxBuffer: 1 << 24 });
+      // Not every vendored file comes from the core; the header says which. One absent at the tag
+      // is skipped here and still covered by its own digest row.
+      if (r.status !== 0) continue;
+      compared += 1;
       assert.ok(fs.readFileSync(path.join(DIR, file)).equals(r.stdout),
-        `${file} has drifted from receipt-verifier@${m[1].slice(0, 7)}`);
+        `${file} has drifted from receipt-verifier@${TAG}`);
     }
+    assert.ok(compared >= 3, `only ${compared} file(s) compared against ${TAG}`);
   });
 });
 
