@@ -29,10 +29,15 @@
 import type { PinnedKeyring } from './authorize.js';
 // ── A STATIC IMPORT, AND THAT IS THE POINT ──────────────────────────────────────────────────
 //
-// MEASURED on the built package: `authorize()` loads the same core with a bare `require(...)`, and
-// `dist/esm/authorize.js` therefore throws `require is not defined` for every ESM consumer. The
-// tests never saw it because they load the CJS source. A call-time `require` is invisible to the
-// compiler in exactly the build where it cannot work.
+// MEASURED on the built package when this module was written: `authorize()` loaded the same core
+// with a bare `require(...)`, and `dist/esm/authorize.js` therefore threw `require is not defined`
+// for every ESM consumer. The tests never saw it because they load the CJS source — a call-time
+// `require` is invisible to the compiler in exactly the build where it cannot work.
+//
+// FIXED SINCE, in authorize.ts, the same way: static imports plus a default import of the vendored
+// core. `test/dual-module-form.test.js` now loads dist/esm and scans it, so the defect is held
+// shut as a class rather than in this one module. Past tense on purpose — a comment that keeps
+// describing a live bug after it is closed sends the next reader looking for it.
 //
 // A static import is compiled to `require` for the CJS output and left as an import for the ESM
 // one, so this module works in both — and the compiler, not a runtime, is what checks it.

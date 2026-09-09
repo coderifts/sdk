@@ -33,6 +33,39 @@
 
 import { createPublicKey } from 'crypto';
 
+// ── STATIC IMPORTS, BECAUSE A CALL-TIME `require` BROKE EVERY ESM CONSUMER ──────────────────
+//
+// These two were loaded inside `authorize()` with a bare `require(...)`. MEASURED against the
+// published 3.14.0 tarball, installed into a fresh project and imported from a real `.mjs`:
+//
+//   import { authorize } from '@coderifts/sdk';   ->  authorize typeof: function
+//   authorize({...})                              ->  ReferenceError: require is not defined
+//                                                     in ES module scope, at dist/esm/authorize.js:64
+//
+// So the function IMPORTED and could not be CALLED — which is why it survived: the export existed,
+// the types were right, and nothing failed until an adopter ran it. The suite never saw it either,
+// because the tests load the CJS build, and a call-time `require` is invisible to the compiler in
+// exactly the build where it cannot work.
+//
+// A static import is compiled to `require` in the CJS output and left as an `import` in the ESM
+// one. The module form stops being something a runtime discovers and becomes something `tsc`
+// emits — which is the whole fix. `verify-receipt-local.ts` was already written this way; this is
+// the same treatment applied to the path that still had the defect.
+//
+// The DEFAULT import for the vendored core, and its reasoning is recorded beside it in
+// `verified-execution-binding.d.ts`: named imports out of vendored CommonJS depend on node's
+// cjs-module-lexer surfacing each name, which it does not always do, and the failure lands at load
+// time rather than at compile time.
+//
+// NEITHER LOAD IS CONDITIONAL AND NEITHER WAS LAZY FOR A REASON. Checked before moving them:
+// `execution-attestation.ts` imports only `crypto` and `./leeway.js`, and nothing imports
+// `authorize.ts` except `index.ts` and a TYPE-only import in `verify-receipt-local.ts` — so there
+// is no cycle these `require`s were quietly working around.
+import bindingCore from './vendor/receipt-verifier/verified-execution-binding.js';
+import { verifyExecutionAttestation } from './execution-attestation.js';
+
+const { verifiedExecutionBinding } = bindingCore;
+
 /**
  * The shortfall vocabulary, shared with the guard, Prove, conformance and the contract-gate.
  * Ordered by severity: the state returned is the MOST serious thing that is wrong.
@@ -199,11 +232,6 @@ function toKeyringMap(keyring: PinnedKeyring | null | undefined): Map<string, un
  * if (!r.authorized_and_committed) throw new Error(`${r.state}: ${r.shortfalls.join('; ')}`);
  */
 export function authorize(input: AuthorizeInput): AuthorizeResult {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { verifiedExecutionBinding } = require('./vendor/receipt-verifier/verified-execution-binding.js');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { verifyExecutionAttestation } = require('./execution-attestation.js');
-
     const g = input.grant || ({} as AuthorizeInput['grant']);
     const att = input.attestation;
     const root = input.evidenceRoot;
