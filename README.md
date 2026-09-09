@@ -1,5 +1,54 @@
 # @coderifts/sdk
 
+## Verifying a receipt offline
+
+`verifyReceipt` runs **locally**: the same vendored receipt-verifier core the public CLI and the
+conformance measure run, in process, over bytes already in memory plus a keyring **you** pin. No
+network, no API key, full Ed25519.
+
+```ts
+import { verifyReceipt } from '@coderifts/sdk';
+
+const r = verifyReceipt(token, { keyring: pinnedKeys });
+if (!r.valid) throw new Error(`${r.status}: ${r.reason}`);
+```
+
+The keyring is required and is **never fetched** by this package. A verifier that downloads the key it is about to
+trust has verified nothing an attacker on the path could not arrange — pin the keys once, as a
+deployment decision, and hand them in.
+
+### The server verify is a MIRROR, not the proof
+
+`client.verifyReceiptViaServer(token, intended)` POSTs the receipt to CodeRifts and reports what
+CodeRifts says. It is the only path that can see **revocation** and the issuer's clock, which no
+local verifier can know — and it is not a verification you performed: the bytes travelled and the
+thing you are trusting is the endpoint.
+
+If the two disagree, both are facts: the local answer is what the signature says, the server's is
+what the issuer currently says. Only the first is a proof you hold.
+
+> `client.verifyReceipt` is a **deprecated alias** of `verifyReceiptViaServer`. It sat on a network
+> call in a package whose readers were told they could verify without CodeRifts, and a name is read
+> more often than a docstring.
+
+### What a local `valid: true` does not say
+
+Carried on every verdict as `does_not_prove`, so it travels with the answer:
+
+- **not authorization.** A valid signature is authenticity. Whether the receipt permits the action
+  you are about to take is `verifyReceiptViaServer(token, intended)` or `authorize()`.
+- **not revocation.** A key compromised a minute ago still verifies locally. Nothing local can know.
+- **not one run.** This checks ONE token; "these tokens came from one run" is a property of a set
+  (`cr.evidence.root.v1`).
+
+| I want to… | Use |
+| --- | --- |
+| **verify a receipt offline** | `verifyReceipt(token, { keyring })` — local, this package |
+| check revocation / the issuer's clock | `client.verifyReceiptViaServer(...)` — a mirror |
+| ask "does this authorize my action?" | `client.verifyReceiptViaServer(token, intended)` |
+| decide authorized **and** committed | `authorize(...)` |
+| verify offline in Python | `pip install coderifts-verifier` |
+
 Agent Governance SDK for the [CodeRifts](https://coderifts.com) API. Validate API changes before tool invocations in AI agent infrastructure (LangChain, AutoGen, Copilot, Claude, Grok, etc.).
 
 ## Installation

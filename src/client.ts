@@ -284,11 +284,32 @@ export class CodeRifts {
             preflight_mode: 'authorize',
         }, opts) as Promise<AuthorizeChangeSetResponse>;
     }
-    // ─── 9. verifyReceipt ──────────────────────────────────────────────────
+    // ─── 9. verifyReceiptViaServer ─────────────────────────────────────────
     /**
-     * Verify a CodeRifts chain receipt. No API key is required — this is a public endpoint (the
-     * Authorization header is sent for consistency but ignored server-side).
-     * POST /api/v1/verify-receipt.
+     * A CONVENIENCE MIRROR, and NOT the offline proof.
+     *
+     * ── READ THIS BEFORE QUOTING ITS ANSWER ─────────────────────────────────────────────────
+     *
+     * This sends the receipt to CodeRifts and reports what CodeRifts says about it. That is
+     * genuinely useful — it is the only path that can see REVOCATION and the issuer's clock, which
+     * no local verifier can know — and it is NOT a verification you performed. The bytes travelled,
+     * the answer came back, and the thing you are trusting is the endpoint.
+     *
+     * **The proof is `verifyReceipt()` from the package root**: the same vendored core the public
+     * receipt-verifier and the conformance CLI run, in process, over bytes already in memory, with
+     * a keyring you pinned. No network, no key, full Ed25519.
+     *
+     * Use this one to ask the questions local verification cannot answer. Use the local one to
+     * establish that the receipt is authentic. If the two disagree, the local answer is what the
+     * signature says and this one is what the issuer currently says — both are facts, and only the
+     * first is a proof you hold.
+     *
+     * (Renamed from `verifyReceipt`. The old name sat on a network call in a package whose readers
+     * were being told they could verify without CodeRifts, and a name is read more often than a
+     * docstring. `verifyReceipt` on the client remains as a deprecated alias for one release.)
+     *
+     * No API key is required — this is a public endpoint (the Authorization header is sent for
+     * consistency but ignored server-side). POST /api/v1/verify-receipt.
      *
      * Two questions, and which one you get depends on whether you pass `intended`:
      *
@@ -306,7 +327,7 @@ export class CodeRifts {
      * @param token     the chain-receipt token
      * @param intended  optional intended context; any subset of its fields may be supplied
      */
-    async verifyReceipt(
+    async verifyReceiptViaServer(
         token: string,
         intended?: VerifyReceiptIntendedContext,
     ): Promise<VerifyReceiptResponse> {
@@ -320,6 +341,19 @@ export class CodeRifts {
             }
         }
         return this.request<VerifyReceiptResponse>('POST', '/api/v1/verify-receipt', body);
+    }
+
+    /**
+     * @deprecated Renamed to `verifyReceiptViaServer` — it is a network call and a convenience
+     * mirror, not the offline proof. The offline proof is `verifyReceipt()` exported from the
+     * package root, which runs the vendored core locally. Kept for one release; behaviour
+     * unchanged.
+     */
+    async verifyReceipt(
+        token: string,
+        intended?: VerifyReceiptIntendedContext,
+    ): Promise<VerifyReceiptResponse> {
+        return this.verifyReceiptViaServer(token, intended);
     }
     // ─── 10. getDecisionDetails ────────────────────────────────────────────
     /**

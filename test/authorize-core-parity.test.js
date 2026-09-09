@@ -118,9 +118,14 @@ describe('authorize() quotes the core predicate', () => {
   }
 
   it('the positive control is TRUE, so parity is not agreement on refusing everything', () => {
+    // A CUSTOM authority set, so the field to read is `requirements_satisfied`. The core no longer
+    // lets a custom set reach `authorized_and_committed` — and the receipt here is a caller's
+    // `verified: true` with no token, which is the second reason it cannot be the global claim.
     const r = bothWays();
-    assert.equal(r.sdk.authorized_and_committed, true, JSON.stringify(r.sdk.shortfalls));
-    assert.equal(r.sdk.state, 'AUTHORIZED_AND_COMMITTED');
+    assert.equal(r.sdk.requirements_satisfied, true, JSON.stringify(r.sdk.shortfalls));
+    assert.equal(r.sdk.state, 'CUSTOM_REQUIREMENTS_SATISFIED');
+    assert.equal(r.sdk.authorized_and_committed, false,
+      'a custom set with an unverified receipt must not read as the global claim');
   });
 
   it('the named states are reachable and distinct — a boolean would lose all of this', () => {
@@ -204,5 +209,63 @@ describe('the vendored core is receipt-verifier\'s, byte for byte', () => {
       assert.ok(fs.readFileSync(path.join(DIR, file)).equals(r.stdout),
         `${file} has drifted from receipt-verifier@${m[1].slice(0, 7)}`);
     }
+  });
+});
+
+describe('the closed profile is REACHABLE from this surface (1504)', () => {
+  /**
+   * ── THE MEASURED GAP ────────────────────────────────────────────────────────────────────
+   *
+   * `authorize()` did not pass `profile` through at all. A caller holding a complete capture —
+   * grant, attestation and a one-run evidence root — could not ask for `authorized_and_committed`
+   * by any means: every answer was `CUSTOM_REQUIREMENTS_SATISFIED`, the honest name for a narrower
+   * question, and here the ONLY name available.
+   *
+   * That is the failure mode this file has to catch, because it is invisible from inside: the
+   * surface kept answering, the answers kept being true, and the strongest claim was unreachable.
+   */
+  const core = require('../src/vendor/receipt-verifier/verified-execution-binding.js');
+
+  it('the input type accepts `profile`, and the call forwards it', () => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'src', 'authorize.ts'), 'utf8');
+    assert.match(src, /profile\?: string;/, 'AuthorizeInput has no `profile`');
+    assert.match(src.slice(src.indexOf('verifiedExecutionBinding(')), /\.\.\.\(input\.profile \?/,
+      'the core call does not forward `profile`');
+  });
+
+  it('a caller that names the profile without the evidence is refused, not upgraded', () => {
+    // The direction that matters: naming a profile must not be a way to ASK for the claim, only
+    // a way to have it judged against a set nobody can shorten.
+    const r = core.verifiedExecutionBinding({
+      receipt: { verified: true },
+      grant: { token: '', keyring: null, expectedKid: null },
+      committed: true,
+      profile: 'TRUSTED_EXECUTOR_INTEGRITY_V1',
+    });
+    assert.equal(r.authorized_and_committed, false);
+    assert.equal(r.profile, 'TRUSTED_EXECUTOR_INTEGRITY_V1');
+  });
+
+  it('profile + required together is REFUSED — the set is not editable', () => {
+    const r = core.verifiedExecutionBinding({
+      receipt: { verified: true },
+      grant: { token: '', keyring: null, expectedKid: null },
+      committed: true,
+      profile: 'TRUSTED_EXECUTOR_INTEGRITY_V1',
+      required: ['issuer_grant'],
+    });
+    assert.equal(r.authorized_and_committed, false);
+    assert.ok(r.shortfalls[0].includes('not editable'), r.shortfalls.join('; '));
+  });
+
+  it('NEGATIVE CONTROL: receipt {verified:true} with no token cannot be the global claim', () => {
+    const r = core.verifiedExecutionBinding({
+      receipt: { verified: true },
+      grant: { token: '', keyring: null, expectedKid: null },
+      committed: true,
+      profile: 'TRUSTED_EXECUTOR_INTEGRITY_V1',
+    });
+    assert.equal(r.receipt_caller_asserted, true);
+    assert.equal(r.authorized_and_committed, false);
   });
 });

@@ -48,6 +48,18 @@ export type { ExpiryLeewayContext } from './leeway.js';
 // treated as authorized AND committed" — by quoting the shared core predicate, so a TS caller
 // reads the same named states the guard, Prove, conformance and the contract-gate print.
 export { authorize, AUTHORIZATION_STATE } from './authorize.js';
+// ── THE OFFLINE PROOF ───────────────────────────────────────────────────────────────────────
+//
+// `verifyReceipt` here is LOCAL: the vendored receipt-verifier core, in process, over bytes
+// already in memory plus a keyring the caller pinned. No network, no API key, full Ed25519.
+//
+// It is exported from the package ROOT deliberately. The only `verifyReceipt` this SDK had was a
+// method on the client that POSTs to CodeRifts — useful, and not a verification the caller
+// performed. A reader told "verify offline, without us" and handed that method has been told
+// something the package could not do, and a NAME is read more often than a docstring.
+// `client.verifyReceiptViaServer()` is the mirror, and says so.
+export { verifyReceipt } from './verify-receipt-local.js';
+export type { LocalReceiptVerdict, VerifyReceiptLocalOptions } from './verify-receipt-local.js';
 export type {
     AuthorizeInput,
     AuthorizeResult,

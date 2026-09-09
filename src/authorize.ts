@@ -47,6 +47,14 @@ export type AuthorizationState =
     | 'ONE_RUN_UNPROVEN'
     /** Everything above holds, and no provider signed a witness of it. */
     | 'RECORDED_UNWITNESSED'
+    /**
+     * A CUSTOM authority set was satisfied — and this is deliberately NOT the global claim.
+     *
+     * A caller that names its own `required[]` asks a narrower question, and the core will not
+     * answer a narrower question with the widest word. Read `requirements_satisfied` for "my set
+     * passed"; read `authorized_and_committed` only for the closed-profile claim.
+     */
+    | 'CUSTOM_REQUIREMENTS_SATISFIED'
     /** The evidence is in order and the change was not committed. */
     | 'NOT_COMMITTED';
 
@@ -67,6 +75,12 @@ export interface AuthorityResult {
 export interface AuthorizeResult {
     /** True only when every REQUIRED authority holds and the change was committed. */
     authorized_and_committed: boolean;
+    /**
+     * Did the set THIS CALLER asked for pass? True for a satisfied closed profile and for a
+     * satisfied custom aggregation alike — so a caller that only wants its own answer never has
+     * to reach for the global one because it was the only boolean available.
+     */
+    requirements_satisfied: boolean;
     state: AuthorizationState;
     authorities: Record<AuthorityName, AuthorityResult>;
     /** One line per unmet required authority, in the core's words. */
@@ -90,7 +104,19 @@ export interface AuthorizeInput {
      * does not re-verify it, and passing `true` for an unverified receipt is the one way to make
      * this function lie for you.
      */
-    receipt: { verified: boolean; token?: string };
+    receipt: {
+        /**
+         * YOUR determination, accepted only as a custom caller's own. Supplying this alone can no
+         * longer produce `authorized_and_committed`: the core marks the result caller-asserted.
+         */
+        verified: boolean;
+        /** The receipt's exact bytes. With a key source below, THE CORE verifies them. */
+        token?: string;
+        keyring?: PinnedKeyring | null;
+        publicKeyPem?: string;
+        expectedKid?: string | null;
+        now?: number;
+    };
     /**
      * THE EXACT BYTES THE ISSUER SIGNED. Not a grant read back out of a tool result: a caller who
      * lets the executed tool hand back its own authorization has already lost.
@@ -118,10 +144,29 @@ export interface AuthorizeInput {
     providerReadback?: { signed: boolean } | null;
     committed: boolean;
     /**
-     * Which authorities this caller demands. Defaults to issuer_grant + executor_attestation —
-     * the pair a holder of a grant and an attestation can actually establish. Ask for more only
-     * when you hold the evidence for it, or the answer will name a shortfall about evidence you
-     * were never going to supply.
+     * A CLOSED, VERSIONED assurance profile — the only way to reach `authorized_and_committed`.
+     *
+     * ── THE MEASURED GAP THIS CLOSES ────────────────────────────────────────────────────────
+     *
+     * The core reserves the global claim for a profile whose authority set the caller cannot
+     * shorten. This surface did not pass `profile` through AT ALL, so an SDK caller holding a
+     * complete capture — grant, attestation and a one-run evidence root — could not ask for that
+     * claim by any means. Every answer was `CUSTOM_REQUIREMENTS_SATISFIED`, which is the honest
+     * name for a narrower question, and here it was the only name available.
+     *
+     * A profile's set is NOT editable: passing `profile` and `required` together is refused by the
+     * core rather than resolved by precedence, because that asks two different questions at once.
+     */
+    profile?: string;
+    /**
+     * Which authorities this caller demands, when it is aggregating its own set. Defaults to
+     * issuer_grant + executor_attestation — the pair a holder of a grant and an attestation can
+     * actually establish. Ask for more only when you hold the evidence for it, or the answer will
+     * name a shortfall about evidence you were never going to supply.
+     *
+     * A satisfied custom set reads `CUSTOM_REQUIREMENTS_SATISFIED`, never the global claim. That
+     * is not a downgrade: it is the difference between "the set I chose passed" and "this run is
+     * authorized and committed", and only a closed profile can say the second.
      */
     required?: AuthorityName[];
 }
@@ -164,7 +209,26 @@ export function authorize(input: AuthorizeInput): AuthorizeResult {
     const root = input.evidenceRoot;
 
     return verifiedExecutionBinding({
-        receipt: { verified: input.receipt && input.receipt.verified === true },
+        // ── THE RECEIPT, VERIFIED BY THE CORE WHEN THE CALLER SUPPLIES IT ────────────────
+        //
+        // `receipt: { verified: true }` was the caller's word, and this function's own doc-comment
+        // called it "the one way to make this function lie for you". The core now refuses to build
+        // the global claim on it: with a token and a keyring it verifies the receipt itself, and
+        // without them the result is marked caller-asserted and cannot reach
+        // AUTHORIZED_AND_COMMITTED.
+        //
+        // Both shapes are still accepted, because a caller that genuinely verified elsewhere is
+        // entitled to say so — what changed is that saying so no longer buys the strongest word.
+        receipt: input.receipt && input.receipt.token
+            ? {
+                token: input.receipt.token,
+                keyring: toKeyringMap(input.receipt.keyring),
+                ...(input.receipt.publicKeyPem
+                    ? { publicKey: createPublicKey(input.receipt.publicKeyPem) } : {}),
+                expectedKid: input.receipt.expectedKid ?? null,
+                ...(Number.isFinite(input.receipt.now) ? { now: input.receipt.now } : {}),
+            }
+            : { verified: !!(input.receipt && input.receipt.verified === true) },
         grant: {
             token: g.token || '',
             keyring: toKeyringMap(g.keyring),
@@ -195,6 +259,7 @@ export function authorize(input: AuthorizeInput): AuthorizeResult {
             : {}),
         ...(input.providerReadback ? { providerReadback: input.providerReadback } : {}),
         committed: input.committed === true,
+        ...(input.profile ? { profile: input.profile } : {}),
         ...(input.required ? { required: input.required } : {}),
     }) as AuthorizeResult;
 }
@@ -206,5 +271,6 @@ export const AUTHORIZATION_STATE: Record<string, AuthorizationState> = Object.fr
     COMMIT_UNPROVEN: 'COMMIT_UNPROVEN',
     ONE_RUN_UNPROVEN: 'ONE_RUN_UNPROVEN',
     RECORDED_UNWITNESSED: 'RECORDED_UNWITNESSED',
+    CUSTOM_REQUIREMENTS_SATISFIED: 'CUSTOM_REQUIREMENTS_SATISFIED',
     NOT_COMMITTED: 'NOT_COMMITTED',
 });
