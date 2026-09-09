@@ -58,6 +58,28 @@ try {
   process.stdout.write(smoke.stdout);
   if (smoke.status !== 0) fail(`documented require failed:\n${smoke.stderr}`);
   process.stdout.write('packed install smoke: OK\n');
+
+  // ── THE DOC INSIDE THE TARBALL, NOT THE DOC IN THE TREE ────────────────────────────────
+  //
+  // MEASURED at 3.14.0: README.md said 3.10.0. `prepack` now stamps it from package.json, but a
+  // stamper is a build step, and a build step that silently no-ops is indistinguishable from one
+  // that ran — unless something reads the RESULT back out of the shipped bytes. That is this.
+  //
+  // It reads the installed copy: past `files`, past `.npmignore`, past a prepack that did not fire
+  // because the publish path skipped it. An adopter's first act is `npm install`, and this is the
+  // README they get.
+  const installedReadme = path.join(installDir, 'node_modules', '@coderifts', 'sdk', 'README.md');
+  if (!fs.existsSync(installedReadme)) fail('the tarball ships no README.md — the doc an adopter '
+    + 'reads on npm is absent from the package');
+  const declared = JSON.parse(fs.readFileSync(path.join(REPO, 'package.json'), 'utf8')).version;
+  const stamped = /^Current package: \*\*([^*]+)\*\*\.$/m.exec(fs.readFileSync(installedReadme, 'utf8'));
+  if (!stamped) fail('the shipped README carries no "Current package" line — either the doc lost '
+    + 'it or prepack failed to stamp it; a version an adopter cannot read is not published');
+  if (stamped[1] !== declared) {
+    fail(`the shipped README says ${stamped[1]} and the package is ${declared} — this is the `
+      + '3.10.0-vs-3.14.0 defect, shipped');
+  }
+  process.stdout.write(`shipped README version: ${stamped[1]} == package ${declared}\n`);
 } finally {
   fs.rmSync(tmp, { recursive: true, force: true });
 }

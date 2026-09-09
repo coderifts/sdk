@@ -1,7 +1,7 @@
 {
   "name": "@coderifts/sdk",
   "version": "3.14.0",
-  "description": "Agent Governance SDK \u2014 validate API changes before tool invocations. TypeScript client for the CodeRifts API.",
+  "description": "Agent Governance SDK — validate API changes before tool invocations. TypeScript client for the CodeRifts API.",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/cjs/index.d.ts",
@@ -33,7 +33,8 @@
     "test": "npm run test:types && node --test --test-concurrency=1 test/*.test.js",
     "prepublishOnly": "npm run build && npm test",
     "check:packed": "node scripts/check-packed-install.js",
-    "build:vendor": "node scripts/copy-vendor.mjs"
+    "build:vendor": "node scripts/copy-vendor.mjs",
+    "prepack": "node scripts/stamp-doc-version.mjs"
   },
   "keywords": [
     "coderifts",
