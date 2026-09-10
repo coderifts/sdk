@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.14.1
+
+authorize() is callable from ESM consumers — the ESM build carried a runtime require that threw at call time; it is now a static import, module-form only, authorize's behaviour unchanged (CJS and ESM give byte-identical results). The vendored core is re-pinned to the signed receipt-verifier v1.0.1 (byte-identical to v1.0.0; the provenance names the signed tag and the signer).
+
+
 ## 3.14.0
 
 Adds verifyReceipt as a local offline verify: the full Ed25519 verification runs in process over bytes in memory — no network, no API key — using the vendored receipt-verifier core, returning the same verdict as the public receipt-verifier and the conformance CLI. The former network method is verifyReceiptViaServer, a convenience mirror for revocation and clock checks whose answer is not the offline proof. The vendored core is re-pinned to receipt-verifier v1.0.0 (51a8224); verify-grant.js admits the reserved inert v2 fields (call_hash, executor_image_digest). authorize() is unchanged.
