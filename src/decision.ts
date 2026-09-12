@@ -48,10 +48,38 @@ export function hasExplicitExecutionAction(response: unknown): boolean {
 }
 
 /**
+ * v2 body: `decision_result` present, OR `decision_spec_version` starts "2.", OR
+ * `preflight_mode` present. Mirrors @coderifts/agent-guard's isV2Response — the two
+ * readers must not disagree about what "legacy" means.
+ */
+function isV2Response(r: Record<string, unknown>, envObj: Record<string, unknown> | null): boolean {
+    if (envObj) return true;
+    if (r.preflight_mode != null && r.preflight_mode !== '') return true;
+    const ver = r.decision_spec_version;
+    return typeof ver === 'string' && ver.startsWith('2.');
+}
+
+/**
+ * The legacy `decision` -> action map is allowed ONLY on an explicit spec-1.0 body that is
+ * not v2. A MISSING `decision_spec_version` is NOT legacy.
+ *
+ * 1565/1585, measured: before this gate the bare-legacy arm mapped `{decision:'ALLOW'}` to
+ * CONTINUE for EVERY bare shape — a missing action, an unrecognised action, and a spec-2.0
+ * body all resolved to permission. An agent branching on the result proceeded on a response
+ * that never granted anything. The wrapped shape was already fail-closed; only the bare arm
+ * leaked, which is why one measurement called this reader fail-closed and another called it
+ * fail-open. Both were right about the shape they fed it.
+ */
+function allowLegacyDecisionMap(r: Record<string, unknown>, envObj: Record<string, unknown> | null): boolean {
+    return r.decision_spec_version === '1.0' && !isV2Response(r, envObj);
+}
+
+/**
  * Read a governance decision from ANY CodeRifts response, fail-closed. Resolution order:
  *   1. envelope-first — `response.decision_result.execution_action` (+ receipt);
  *   2. top-level `execution_action` (legacy REST endpoints emit it directly);
- *   3. map a top-level `decision` via the ported deriveExecutionAction table;
+ *   3. map a top-level `decision` via the ported deriveExecutionAction table — ONLY on an
+ *      explicit spec-1.0, non-v2 body (see {@link allowLegacyDecisionMap});
  *   4. otherwise fail closed: `{ executionAction: 'STOP', reason: 'UNREADABLE_DECISION' }`.
  * Never throws — a guard can call this on any value (including error bodies / garbage).
  */
@@ -81,8 +109,12 @@ export function readDecision(response: unknown): ReadDecisionResult {
         };
     }
 
-    // 3. Legacy decision-only -> mapped action.
-    if (typeof r.decision === 'string' && Object.prototype.hasOwnProperty.call(EXECUTION_ACTION, r.decision)) {
+    // 3. Legacy decision-only -> mapped action. Gated: explicit spec 1.0, non-v2 only.
+    if (
+        typeof r.decision === 'string' &&
+        Object.prototype.hasOwnProperty.call(EXECUTION_ACTION, r.decision) &&
+        allowLegacyDecisionMap(r, (env && typeof env === 'object' ? env : null))
+    ) {
         return { executionAction: EXECUTION_ACTION[r.decision], decision: r.decision };
     }
 

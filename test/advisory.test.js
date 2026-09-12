@@ -259,8 +259,11 @@ describe('explainDecision — advisory prose, not a gate', () => {
         assert.equal(out.execution_action, 'STOP');
         assert.equal(out.reason, 'UNREADABLE_DECISION');
         assert.match(out.summary, /treat as STOP/);
-        // The normaliser still has the arm — helpers must not consume it.
-        assert.equal(readDecision({ decision: 'ALLOW' }).executionAction, 'CONTINUE');
+        // The normaliser still has the arm — helpers must not consume it. Post-1565 the arm
+        // requires an explicit spec-1.0 body, so the pin moves with it: the bare shape the
+        // helper was handed above now fails closed on its own too.
+        assert.equal(readDecision({ decision: 'ALLOW', decision_spec_version: '1.0' }).executionAction, 'CONTINUE');
+        assert.equal(readDecision({ decision: 'ALLOW' }).executionAction, 'STOP');
     });
 
     it('components and trigger count still rendered', async () => {
