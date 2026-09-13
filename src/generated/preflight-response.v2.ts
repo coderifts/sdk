@@ -193,7 +193,7 @@ export interface AnalyzeChangeSetResponse {
     [k: string]: unknown;
   };
   /**
-   * GOVERNANCE detector detail rows (src/change-patterns.js; validated by decision-spec-fields.js). Row shape measured live: name, severity, description, consequence, affected_path, af…
+   * GOVERNANCE detector detail rows, emitted by the pattern detectors and validated against the decision-spec field contract before they leave the server. Row shape measured live: name…
    */
   detected_patterns?: {
     /**
@@ -241,7 +241,7 @@ export interface AnalyzeChangeSetResponse {
     [k: string]: unknown;
   }[];
   /**
-   * Bundle severity axes (src/change-set.js severity_summary). Distinct axes, not contradictory. Measured keys: diff_severity, governance_severity, policy_effect, note.
+   * Bundle severity axes, computed once per change set. Distinct axes, not contradictory. Measured keys: diff_severity, governance_severity, policy_effect, note.
    */
   severity_summary?: {
     /**
@@ -259,7 +259,7 @@ export interface AnalyzeChangeSetResponse {
     note?: string;
   };
   /**
-   * Tier-2 analysis mirror (src/response-envelope.js buildAnalysisTier / attachControlSurface). Dual-write of the flat analysis fields present on the verdict, plus remediations[]. PROP…
+   * Tier-2 analysis mirror, assembled by the response builder alongside the control surface. Dual-write of the flat analysis fields present on the verdict, plus remediations[]. PROPERT…
    */
   analysis?: {
     breaking_changes?: number;
@@ -319,7 +319,7 @@ export interface AnalyzeChangeSetResponse {
     [k: string]: unknown;
   };
   /**
-   * Human-readable report tier (src/response-envelope.js buildHumanReport / analyze v2 stub). Measured keys: summary, breaking_highlights, suggestions, next_steps_prose.
+   * Human-readable report tier, assembled by the response builder; analyze returns a reduced form. Measured keys: summary, breaking_highlights, suggestions, next_steps_prose.
    */
   human_report?: {
     summary?: string;
@@ -528,7 +528,7 @@ export interface AuthorizeChangeSetResponse {
     [k: string]: unknown;
   };
   /**
-   * GOVERNANCE detector detail rows (src/change-patterns.js; validated by decision-spec-fields.js). Row shape measured live: name, severity, description, consequence, affected_path, af…
+   * GOVERNANCE detector detail rows, emitted by the pattern detectors and validated against the decision-spec field contract before they leave the server. Row shape measured live: name…
    */
   detected_patterns?: {
     /**
@@ -576,7 +576,7 @@ export interface AuthorizeChangeSetResponse {
     [k: string]: unknown;
   }[];
   /**
-   * Bundle severity axes (src/change-set.js severity_summary). Distinct axes, not contradictory. Measured keys: diff_severity, governance_severity, policy_effect, note.
+   * Bundle severity axes, computed once per change set. Distinct axes, not contradictory. Measured keys: diff_severity, governance_severity, policy_effect, note.
    */
   severity_summary?: {
     /**
@@ -594,7 +594,7 @@ export interface AuthorizeChangeSetResponse {
     note?: string;
   };
   /**
-   * Tier-2 analysis mirror (src/response-envelope.js buildAnalysisTier / attachControlSurface). Dual-write of the flat analysis fields present on the verdict, plus remediations[]. PROP…
+   * Tier-2 analysis mirror, assembled by the response builder alongside the control surface. Dual-write of the flat analysis fields present on the verdict, plus remediations[]. PROPERT…
    */
   analysis?: {
     breaking_changes?: number;
@@ -654,7 +654,7 @@ export interface AuthorizeChangeSetResponse {
     [k: string]: unknown;
   };
   /**
-   * Human-readable report tier (src/response-envelope.js buildHumanReport / analyze v2 stub). Measured keys: summary, breaking_highlights, suggestions, next_steps_prose.
+   * Human-readable report tier, assembled by the response builder; analyze returns a reduced form. Measured keys: summary, breaking_highlights, suggestions, next_steps_prose.
    */
   human_report?: {
     summary?: string;
