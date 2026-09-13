@@ -17,6 +17,27 @@ The keyring is required and is **never fetched** by this package. A verifier tha
 trust has verified nothing an attacker on the path could not arrange — pin the keys once, as a
 deployment decision, and hand them in.
 
+**Where the keys come from is your decision, and the SDK will not make it.**
+This package ships no embedded keyring — `@coderifts/conformance` does, this
+does not — so "obtain a trustworthy keyring" is a step you own. Two routes are
+supported:
+
+1. **A file you pinned.** Fetch `.well-known/coderifts-keys.json` once, out of
+   band, review it, and commit it. Load it and hand it in. This is the stronger
+   form: the pin is a reviewed artifact in your repository, and it changes only
+   when you change it.
+2. **The copy vendored in `@coderifts/conformance`**, at
+   `lib/vendor/receipt-verifier/keys/coderifts-keys.json`. Same document shape,
+   already in your dependency tree if you run the suite. Convenient — but the
+   pin then rides on that package's version, so an upgrade can move the keys you
+   thought you had pinned. Treat the version as part of the pin.
+
+The boundary: pinning is a trust decision taken **once, out of band**, and this
+verifier will refuse rather than make it for you — a missing keyring is a
+`TypeError`, not a fetch. What pinning cannot give you is freshness. A pinned
+key is only as current as your last review, and revocation is invisible to any
+local verifier (see the mirror, below).
+
 ### The server verify is a MIRROR, not the proof
 
 `client.verifyReceiptViaServer(token, intended)` POSTs the receipt to CodeRifts and reports what
@@ -299,6 +320,18 @@ if (read.executionAction === 'CONTINUE') {
 print it, put it in a PR comment — never branch on it. That is the agent-host
 rule `not_for_control_flow_use_execution_action`, and `@coderifts/conformance`
 ships a deliberately-wrong `branch-on-decision` subject that the suite fails.
+
+**`does_not_prove` is prose, not a class.** Every verdict carries it, and it is
+there to be read: log it, print it, put it in the PR comment beside the
+decision. It is **not** a control input, and it is a weaker thing than
+`decision` — `decision` is at least a closed set of labels, while
+`does_not_prove` is a list of sentences generated from what was actually
+measured on that call. Its wording moves when the measurement moves. Branching
+on its text, its length, or whether a particular phrase appears in it builds a
+guard on a string that was never promised to stay the same.
+
+If you need a machine-readable limit to branch on, that is a different feature
+and it is built on request — not by pattern-matching this field.
 
 Resolution order, and what falls closed:
 
