@@ -226,7 +226,7 @@ export interface AnalyzeChangeSetResponse {
     side?: 'request' | 'response';
   }[];
   /**
-   * Per-change IR/detail rows from the engine (src/blast/diff-to-change.js maps these). Measured row keys: type, path, method, field, severity, description. Distinct from breaking_chan…
+   * Per-change IR/detail rows, mapped from the engine's change IR. Measured row keys: type, path, method, field, severity, description. Distinct from breaking_changes (integer count).
    */
   breaking_changes_details?: {
     /**
@@ -340,7 +340,7 @@ export interface AnalyzeChangeSetResponse {
     [k: string]: unknown;
   } | null;
   /**
-   * ID27 additive COUNTS (not a score). Pure function of the change-set + request graphs. Not in the verdict_fingerprint preimage.
+   * Additive COUNTS (not a score). Pure function of the change-set + request graphs. Not in the verdict_fingerprint preimage.
    */
   blast_radius?: {
     endpoints: number;
@@ -561,7 +561,7 @@ export interface AuthorizeChangeSetResponse {
     side?: 'request' | 'response';
   }[];
   /**
-   * Per-change IR/detail rows from the engine (src/blast/diff-to-change.js maps these). Measured row keys: type, path, method, field, severity, description. Distinct from breaking_chan…
+   * Per-change IR/detail rows, mapped from the engine's change IR. Measured row keys: type, path, method, field, severity, description. Distinct from breaking_changes (integer count).
    */
   breaking_changes_details?: {
     /**
@@ -685,7 +685,7 @@ export interface AuthorizeChangeSetResponse {
     [k: string]: unknown;
   } | null;
   /**
-   * ID27 additive COUNTS (not a score). Pure function of the change-set + request graphs. Not in the verdict_fingerprint preimage.
+   * Additive COUNTS (not a score). Pure function of the change-set + request graphs. Not in the verdict_fingerprint preimage.
    */
   blast_radius?: {
     endpoints: number;

@@ -638,7 +638,7 @@ export interface DecisionResultEnvelope {
     scope?: string;
   } | null;
   /**
-   * ID27 additive COUNTS (not a score). Pure function of the change-set + request graphs. Not in the verdict_fingerprint preimage (before_norm+after_norm+policy+scorer_version). Zeros …
+   * Additive COUNTS (not a score). Pure function of the change-set + request graphs. Not in the verdict_fingerprint preimage (before_norm+after_norm+policy+scorer_version). Zeros are m…
    */
   blast_radius?: {
     endpoints: number;
