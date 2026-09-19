@@ -34,9 +34,9 @@ export type PreflightChangeSetResponse = AnalyzeChangeSetResponse | AuthorizeCha
 export interface AnalyzeChangeSetResponse {
   preflight_mode: 'analyze';
   /**
-   * Closed analysis outcome set derived from engine-visible state only.
+   * Closed analysis outcome set derived from engine-visible state only. NOT_SUPPORTED = no analyzer (agent_operation / type outside the published enum). ANALYSIS_FAILED = an analyzer r…
    */
-  analysis_outcome: 'NO_BREAK_DETECTED' | 'BREAKS_DETECTED' | 'ANALYSIS_FAILED';
+  analysis_outcome: 'NO_BREAK_DETECTED' | 'BREAKS_DETECTED' | 'ANALYSIS_FAILED' | 'NOT_SUPPORTED';
   /**
    * Analyze never authorizes; always NONE.
    */

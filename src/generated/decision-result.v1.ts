@@ -313,6 +313,10 @@ export interface DecisionResultEnvelope {
    */
   preflight_mode?: 'analyze' | 'authorize' | null;
   /**
+   * case = conclusive verdict WITHIN SUPPORTED ANALYSIS SCOPE. true when every artifact had a supported analyzer. false for agent_operation / type outside the published enum (NOT_SUPPO…
+   */
+  supported_scope?: boolean | null;
+  /**
    * Additive v1.1. sha256 over the bundle's per-artifact before/after content digests. null on non-bundle paths.
    */
   artifact_digest?: string | null;
