@@ -135,6 +135,8 @@ const V2_REQUIRED_STRINGS = [
     'operation', 'target_uri', 'expected_state_token', 'after_payload_hash',
     'nonce_hash', 'policy_hash', 'audience_hash', 'not_before', 'expires_at',
 ] as const;
+/** Admitted, and read as NOTHING. Twin of receipt-verifier V2_RESERVED_INERT (v1.0.3). */
+const V2_RESERVED_INERT = ['call_hash', 'executor_image_digest', 'applied_policy_hash'] as const;
 
 const TARGET_SCHEMES = ['fs', 'git', 'api', 'db', 'registry', 'deploy'];
 
@@ -209,7 +211,7 @@ function verifyExecutionGrantV2(
     // CLOSED SET, matching the core exactly. An unknown key is refused rather than ignored: v2
     // signs the whole body, so a field this verifier does not know about is a field it cannot say
     // anything true about.
-    const allowed = new Set<string>([...V2_REQUIRED_STRINGS, 'max_attempts']);
+    const allowed = new Set<string>([...V2_REQUIRED_STRINGS, 'max_attempts', ...V2_RESERVED_INERT]);
     for (const k of Object.keys(payload)) {
         if (!allowed.has(k)) {
             return { valid: false, status: 'MALFORMED', reason: 'unknown_field', payload };

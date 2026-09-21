@@ -203,11 +203,11 @@ describe('the vendored core is receipt-verifier\'s, byte for byte', () => {
     // comparison is against v1.0.0, so a sibling on another branch, or with uncommitted edits,
     // can no longer make this pass.
     const { spawnSync } = require('node:child_process');
-    const TAG = 'v1.0.2';
+    const TAG = 'v1.0.3';
     const peeled = spawnSync('git', ['-C', SOURCE, 'rev-parse', `${TAG}^{commit}`], { encoding: 'utf8' });
     assert.equal(peeled.status, 0,
       `receipt-verifier has no ${TAG} tag — the vendored core cannot be traced to a release`);
-    assert.equal(peeled.stdout.trim(), 'ac683b16c19662c9124c8cdab785223b28d2d0c6',
+    assert.equal(peeled.stdout.trim(), '523e0a2b822088990f500b9eea3868309439c53c',
       `${TAG} points somewhere other than the commit this pin names`);
 
     // ── THE TAG IS VERIFIED, NOT MERELY RESOLVED ────────────────────────────────────────────
