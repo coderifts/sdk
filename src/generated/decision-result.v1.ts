@@ -95,6 +95,10 @@ export interface DecisionResultEnvelope {
    */
   analysis_complete: boolean;
   /**
+   * 1961/III TAG 2 — the decision path's own limits, as constant sentences from src/endpoint-does-not-prove.js DECISION_PATH. ADDITIVE and OPTIONAL: an envelope issued before this fiel…
+   */
+  does_not_prove?: string[] | null;
+  /**
    * @maxItems 20
    */
   degraded_reasons?:
