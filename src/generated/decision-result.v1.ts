@@ -345,7 +345,11 @@ export interface DecisionResultEnvelope {
    */
   authorization_scope_hash?: string | null;
   /**
-   * Additive v1.1. Build/commit id of the engine. No producer yet; null until a build-id env/source is wired. Never invented.
+   * 1961/VI TAG 2b — deterministic hash of the APPLIED CONFIGURATION that could reach this verdict (today: DECISION_VALIDATOR_MODE). ADDITIVE and OPTIONAL; null on any path that did no…
+   */
+  applied_config_hash?: string | null;
+  /**
+   * Additive v1.1. Build/commit id of the engine. PRODUCER WIRED 2026-09-24 (src/engine-identity.js): reads CODERIFTS_ENGINE_BUILD, then CODERIFTS_BUILD_ID, then the platform's deploy …
    */
   engine_build_id?: string | null;
   /**

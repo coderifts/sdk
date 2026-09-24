@@ -332,6 +332,14 @@ export interface AnalyzeChangeSetResponse {
    */
   request_correlation_id?: string;
   /**
+   * 1957/362 — which ENGINE BUILD produced this decision. ADDITIVE and OPTIONAL: null when no build env is present, and absent on every response issued before this field existed. ⚠ NEV…
+   */
+  engine_build_id?: string | null;
+  /**
+   * 1957/362 — deterministic hash of the applied configuration that could reach this verdict (today: DECISION_VALIDATOR_MODE). ADDITIVE and OPTIONAL. ⚠ The member set is deliberately S…
+   */
+  applied_config_hash?: string | null;
+  /**
    * Fingerprint-bound scorerVersion() (observation; not permission).
    */
   scorer_version?: string | null;
@@ -670,6 +678,14 @@ export interface AuthorizeChangeSetResponse {
    * Decision envelope correlation id (attachControlSurface). Present on authorize when decision_result.correlation_id is set. Distinct from request_correlation_id / correlation_id (req…
    */
   decision_correlation_id?: string;
+  /**
+   * 1957/362 — which ENGINE BUILD produced this decision. Additive, optional, null when no build env is present; never fabricated. See the authorize branch for the full note.
+   */
+  engine_build_id?: string | null;
+  /**
+   * 1957/362 — deterministic hash of the applied configuration that could reach this verdict. Additive, optional.
+   */
+  applied_config_hash?: string | null;
   /**
    * Fingerprint-bound scorerVersion() (same as decision_result.scorer_version / FP preimage).
    */
