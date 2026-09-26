@@ -22,8 +22,9 @@ This package ships no embedded keyring — `@coderifts/conformance` does, this
 does not — so "obtain a trustworthy keyring" is a step you own. Two routes are
 supported:
 
-1. **A file you pinned.** Fetch `.well-known/coderifts-keys.json` once, out of
-   band, review it, and commit it. Load it and hand it in. This is the stronger
+1. **A file you pinned.** Fetch
+   `https://app.coderifts.com/.well-known/coderifts-keys.json` once, out of
+   band, review it, and commit it (the apex `coderifts.com` path redirects there). Load it and hand it in. This is the stronger
    form: the pin is a reviewed artifact in your repository, and it changes only
    when you change it.
 2. **The copy vendored in `@coderifts/conformance`**, at
