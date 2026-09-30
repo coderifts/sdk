@@ -337,7 +337,7 @@ export interface DecisionResultEnvelope {
    */
   decision_spec_version?: string | null;
   /**
-   * Additive v1.1. Intended audience of the decision: server-derived authenticated requester identity ('v:' + sha256(utf8(apiKey)).hex.slice(0, 12) via velocity-monitor.decisionAudienc…
+   * Additive v1.1. Intended audience of the decision: server-derived authenticated requester identity ('v:' + the first 12 hex characters of sha256 of the API key) on API-key paths; nu…
    */
   audience?: string | null;
   /**
@@ -345,7 +345,7 @@ export interface DecisionResultEnvelope {
    */
   authorization_scope_hash?: string | null;
   /**
-   * 1961/VI TAG 2b — deterministic hash of the APPLIED CONFIGURATION that could reach this verdict (today: DECISION_VALIDATOR_MODE). ADDITIVE and OPTIONAL; null on any path that did no…
+   * 1961/VI TAG 2b — deterministic hash of the APPLIED CONFIGURATION that could reach this verdict (today: the decision validator mode). ADDITIVE and OPTIONAL; null on any path that di…
    */
   applied_config_hash?: string | null;
   /**
@@ -596,7 +596,7 @@ export interface DecisionResultEnvelope {
    */
   remediation_transaction?: {
     /**
-     * Per-change remediations from remediation-taxonomy.buildRemediations (reused, not reinvented).
+     * Per-change remediations from the server's remediation taxonomy (reused, not reinvented).
      */
     required_changes: {
       [k: string]: any;
