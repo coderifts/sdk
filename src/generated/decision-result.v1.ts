@@ -95,7 +95,7 @@ export interface DecisionResultEnvelope {
    */
   analysis_complete: boolean;
   /**
-   * 1961/III TAG 2 — the decision path's own limits, as constant sentences from src/endpoint-does-not-prove.js DECISION_PATH. ADDITIVE and OPTIONAL: an envelope issued before this fiel…
+   * 1961/III TAG 2 — the decision path's own limits, as constant sentences from the server's decision-path list. ADDITIVE and OPTIONAL: an envelope issued before this field existed doe…
    */
   does_not_prove?: string[] | null;
   /**
@@ -341,7 +341,7 @@ export interface DecisionResultEnvelope {
    */
   audience?: string | null;
   /**
-   * Additive v1.1. sha256 of canonical JSON {operation, target, tool} authored at authorize issuance (change-set.js envelopeFields). Null on analyze (no permission issued) and when all…
+   * Additive v1.1. sha256 of canonical JSON {operation, target, tool} authored at authorize issuance. Null on analyze (no permission issued) and when all three slots are empty. A verif…
    */
   authorization_scope_hash?: string | null;
   /**
@@ -349,7 +349,7 @@ export interface DecisionResultEnvelope {
    */
   applied_config_hash?: string | null;
   /**
-   * Additive v1.1. Build/commit id of the engine. PRODUCER WIRED 2026-09-24 (src/engine-identity.js): reads CODERIFTS_ENGINE_BUILD, then CODERIFTS_BUILD_ID, then the platform's deploy …
+   * Additive v1.1. Build/commit id of the engine. PRODUCER WIRED 2026-09-24: read from an explicit build variable, then the platform's deploy commit, and a 40-hex commit is shortened t…
    */
   engine_build_id?: string | null;
   /**
@@ -369,7 +369,7 @@ export interface DecisionResultEnvelope {
    */
   breaking_changes?: number | null;
   /**
-   * Additive. REQUIRED-CANDIDATE for a future major (not required in v1). Short name list from TWO detectors: (1) governance names from change-patterns.js (same set as detected_pattern…
+   * Additive. REQUIRED-CANDIDATE for a future major (not required in v1). Short name list from TWO detectors: (1) governance names from the governance pattern detector (same set as det…
    */
   patterns?: string[] | null;
   /**
@@ -398,7 +398,7 @@ export interface DecisionResultEnvelope {
          */
         basis_codes?: string[];
         /**
-         * Derived only: parallel to basis_codes. Plain-text sentences from the single CODE_MAP (src/diff-code-labels.js) — no presentation markers (the PR comment renderer adds those separat…
+         * Derived only: parallel to basis_codes. Plain-text sentences from the single server-side code map — no presentation markers (the PR comment renderer adds those separately). Explains…
          */
         basis_code_labels?: (string | null)[];
         /**
@@ -412,7 +412,7 @@ export interface DecisionResultEnvelope {
       }[]
     | null;
   /**
-   * Additive. GOVERNANCE detector detail rows (src/change-patterns.js) — the array pattern_sources[].detected_pattern_indices indexes into, so those indices resolve against a declared …
+   * Additive. GOVERNANCE detector detail rows — the array pattern_sources[].detected_pattern_indices indexes into, so those indices resolve against a declared property (ID816). One row…
    */
   detected_patterns?:
     | {
@@ -575,7 +575,7 @@ export interface DecisionResultEnvelope {
    */
   next_agent_step?: {
     /**
-     * Closed set — src/next-agent-step.js NEXT_AGENT_ACTIONS.
+     * Closed set.
      */
     action: 're_preflight' | 'revert' | 'migrate' | 'escalate' | 'await_approval';
     /**
@@ -636,7 +636,7 @@ export interface DecisionResultEnvelope {
     };
   } | null;
   /**
-   * User-visible scorer identity bound into the verdict fingerprint preimage (core/verdict-fingerprint scorerVersion = getPatternConfigHash():OMEGA_MODE). Single source — same string a…
+   * User-visible scorer identity bound into the verdict fingerprint preimage (the pattern-configuration hash plus the scoring mode). Single source — same string already hashed with bef…
    */
   scorer_version?: string | null;
   /**
