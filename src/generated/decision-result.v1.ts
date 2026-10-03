@@ -61,7 +61,7 @@ export interface DecisionResultEnvelope {
    */
   next_actions: NextAction[];
   /**
-   * DECISION fingerprint (deterministic verdict identity on the oasdiff-1.11.11 pinned path for the main OpenAPI preflight surface; matches the REST v1 verdict fingerprint). Same input…
+   * DECISION fingerprint (deterministic verdict identity on the oasdiff-1.33.0 pinned path for the main OpenAPI preflight surface; matches the REST v1 verdict fingerprint). Same input,…
    */
   fingerprint: string;
   /**
