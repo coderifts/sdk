@@ -226,6 +226,17 @@ export interface AnalyzeChangeSetResponse {
     side?: 'request' | 'response';
   }[];
   /**
+   * P60 (2026-10-05): breaking changes shipped without a MAJOR version bump, one row per OpenAPI artifact, read from info.version before and after. A signal for the reader: computed af…
+   */
+  semver_violations?: {
+    artifact_id: string;
+    code: 'BREAKING_IN_NONMAJOR';
+    bump: 'PATCH' | 'MINOR' | 'NONE';
+    from: string;
+    to: string;
+    line: string;
+  }[];
+  /**
    * Per-change IR/detail rows, mapped from the engine's change IR. Measured row keys: type, path, method, field, severity, description. Distinct from breaking_changes (integer count).
    */
   breaking_changes_details?: {
@@ -567,6 +578,17 @@ export interface AuthorizeChangeSetResponse {
      * Optional; currently set on ENUM_NARROWING only. Request-side narrowing is agent-breaking (threaded so safe_for_agent can distinguish it). Absent when the detector did not set it.
      */
     side?: 'request' | 'response';
+  }[];
+  /**
+   * P60 (2026-10-05): breaking changes shipped without a MAJOR version bump, one row per OpenAPI artifact, read from info.version before and after. A signal for the reader: computed af…
+   */
+  semver_violations?: {
+    artifact_id: string;
+    code: 'BREAKING_IN_NONMAJOR';
+    bump: 'PATCH' | 'MINOR' | 'NONE';
+    from: string;
+    to: string;
+    line: string;
   }[];
   /**
    * Per-change IR/detail rows, mapped from the engine's change IR. Measured row keys: type, path, method, field, severity, description. Distinct from breaking_changes (integer count).
