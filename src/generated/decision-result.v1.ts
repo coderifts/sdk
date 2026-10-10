@@ -517,6 +517,51 @@ export interface DecisionResultEnvelope {
     binding_proven_at?: string | null;
   } | null;
   /**
+   * Additive (2026-10-10). Present ONLY when a verified engine-verdict approval turned this merge authorize into ALLOW / CONTINUE; ABSENT (not null) otherwise, so every other envelope'…
+   */
+  approval?: {
+    /**
+     * The approval class: a GitHub review by a login on the base branch's engine_verdict_approvers (.coderifts.yml at the base ref).
+     */
+    kind: 'engine_verdict_approval';
+    /**
+     * GitHub login of the (first counted) approving reviewer.
+     */
+    approved_by: string;
+    /**
+     * Every counted approving login (two distinct non-author logins on a control-plane path). Login-string distinctness only.
+     */
+    approvers: string[];
+    /**
+     * The review's submitted_at as GitHub reported it.
+     */
+    approved_at?: string | null;
+    /**
+     * GitHub review id of the approval.
+     */
+    review_id?: string | null;
+    /**
+     * The commit the review approved.
+     */
+    review_commit_sha?: string | null;
+    /**
+     * Where the approver identity comes from.
+     */
+    identity_source: 'github_review';
+    /**
+     * What GitHub asserts: an authenticated account approved that commit. Not an org role, not that two logins are two people.
+     */
+    identity_claim?: string | null;
+    /**
+     * The diff the approval covers, fingerprinted as the merge gate fingerprints it (context { operation: 'merge' }). The ALLOW is issued only when this equals the request's artifacts fi…
+     */
+    input_fingerprint: string;
+    /**
+     * The engine's own verdict on the diff, unchanged: the approval accepts the break, it does not say the break is safe.
+     */
+    machine_decision?: 'BLOCK' | 'REQUIRE_APPROVAL' | null;
+  } | null;
+  /**
    * Additive (ID637 6b). Present ONLY when derivation:"server" produced this envelope. ABSENT (not null) on the default caller-artifacts path so body_hash stays byte-identical. Covered…
    */
   derivation?: {
