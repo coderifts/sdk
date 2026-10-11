@@ -293,6 +293,23 @@ export interface DecisionResultEnvelope {
    */
   repository?: string | null;
   /**
+   * Issuer path only (2026-10-11): who asked for this App-issued receipt, from the App's own webhook facts, never from a request body. Absent on every other envelope. Covered by decisi…
+   */
+  requester?: {
+    /**
+     * GitHub login of the pull request author (pull_request.user.login), as the webhook payload states it.
+     */
+    requested_by: string | null;
+    /**
+     * GitHub login of the event sender (sender.login); null when the run was not started by a pull_request event (a review re-evaluation).
+     */
+    sender: string | null;
+    /**
+     * The GitHub App installation id the issuer acted under.
+     */
+    installation_id: string | null;
+  } | null;
+  /**
    * Additive. Place binding: caller-declared branch (bundle context.branch). Present only when supplied. null = unbound.
    */
   branch?: string | null;
