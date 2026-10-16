@@ -154,7 +154,7 @@ export interface AnalyzeChangeSetResponse {
       [k: string]: unknown;
     }[];
     /**
-     * Whether this decision_id was written to the decisions store. { stored:true } means GET /v1/decisions/:id will resolve. { stored:false, reason } names the degradation (storage_unava…
+     * Whether this decision_id was written to the decisions store. { stored:true } means GET /v1/decisions/:id will resolve with your key. { stored:false, reason } names the degradation …
      */
     persistence?: {
       stored?: boolean;
@@ -503,7 +503,7 @@ export interface AuthorizeChangeSetResponse {
       [k: string]: unknown;
     }[];
     /**
-     * Whether this decision_id was written to the decisions store. { stored:true } means GET /v1/decisions/:id will resolve. { stored:false, reason } names the degradation (storage_unava…
+     * Whether this decision_id was written to the decisions store. { stored:true } means GET /v1/decisions/:id will resolve with your key. { stored:false, reason } names the degradation …
      */
     persistence?: {
       stored?: boolean;
