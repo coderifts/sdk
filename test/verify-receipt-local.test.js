@@ -172,9 +172,26 @@ describe('the vendored core is receipt-verifier\'s, byte for byte', () => {
             t.skip('receipt-verifier is not beside this repo — the pin was checked, upstream parity was NOT');
             return;
         }
+        // 2026-10-25: against the TAG the pin names, not the sibling's working tree (as agent-guard,
+        // prove and conformance compare). MEASURED: with receipt-verifier checked out at v1.1.5 the
+        // working-tree comparison failed a vendor byte-identical to the v1.0.3 it pins.
         const dir = path.join(__dirname, '..', 'src', 'vendor', 'receipt-verifier');
-        assert.ok(fs.readFileSync(path.join(dir, 'verify.js')).equals(fs.readFileSync(upstream)),
-            'the vendored verify.js has drifted from receipt-verifier');
+        const header = fs.readFileSync(path.join(dir, 'VENDOR.sha256'), 'utf8');
+        const tag = (header.match(/receipt-verifier \*\*(v\d+\.\d+\.\d+)\*\*/) || [])[1];
+        const commit = (header.match(/source_commit: ([0-9a-f]{40})/) || [])[1];
+        assert.ok(tag && commit, 'the pin names no release tag and source_commit');
+        const { spawnSync } = require('node:child_process');
+        const repo = path.dirname(upstream);
+        const peeled = spawnSync('git', ['-C', repo, 'rev-parse', `${tag}^{commit}`], { encoding: 'utf8' });
+        if (peeled.status !== 0) {
+            t.skip(`receipt-verifier beside this repo has no ${tag} tag — the pin was checked, upstream parity was NOT`);
+            return;
+        }
+        assert.equal(peeled.stdout.trim(), commit, `${tag} points somewhere other than the pinned commit`);
+        const atTag = spawnSync('git', ['-C', repo, 'show', `${tag}:verify.js`], { maxBuffer: 1 << 24 });
+        assert.equal(atTag.status, 0);
+        assert.ok(fs.readFileSync(path.join(dir, 'verify.js')).equals(atTag.stdout),
+            `the vendored verify.js has drifted from receipt-verifier@${tag}`);
     });
 });
 

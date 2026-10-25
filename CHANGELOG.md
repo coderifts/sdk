@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.14.4
+
+The generated types follow the current app schemas: decision-result v1 carries the requester block and the approval block; preflight-response v2 carries semver_violations and the keyed decision-lookup wording; the decision-result wording follows oasdiff 1.33.0; execution-grant-request v2 is regenerated from the same schemas. The package description is the canonical sentence, with the keywords api-contract-preflight, offline-verifiable-authorization and agent-authorization. No runtime change: the vendored receipt-verifier core is still the signed v1.0.3. The recorded app-sync snapshot is re-recorded with scripts/record-app-sync.js at coderifts-app e7b237a6 (the grant-request type), and the vendored-core parity test compares against the tag the pin names instead of the sibling's working tree. npm test: 172 tests, 172 pass, 0 fail.
+
+## 3.14.3
+
+Measured from the published tarball's gitHead (0a39479) against 3.14.2's (01ad5bf). CODERIFTS_POLICY names target_id as decision_result.artifact_digest and target_not_stated as a missing input, and names the context fields at the top level, following the app. The v2 execution-grant verifier admits call_hash, executor_image_digest and applied_policy_hash as reserved inert fields, the same three names the vendored core admits; the vendored core is re-pinned to the signed receipt-verifier v1.0.3 (verify.js, verify-grant.js). The generated decision-result and preflight-response types follow the app schema (engine_build_id and applied_config_hash at the response root, NOT_SUPPORTED and supported_scope). The README says what the package cannot settle on its own, that does_not_prove is prose, and names the key registry by its full URL. The tag v3.14.3 points at e4e3310; the tarball was built from 0a39479, its child, which re-records the app-sync snapshot.
+
+## 3.14.2
+
+Measured from the published tarball's gitHead (01ad5bf) against 3.14.1's (02f31f2). The legacy decision-to-action map applies only to an explicit spec-1.0 body that is not v2; a missing decision_spec_version is not legacy (1565). The vendored core is re-pinned to the signed receipt-verifier v1.0.2. The tag is `sdk-v3.14.2` (01ad5bf).
+
 ## 3.14.1
 
 authorize() is callable from ESM consumers — the ESM build carried a runtime require that threw at call time; it is now a static import, module-form only, authorize's behaviour unchanged (CJS and ESM give byte-identical results). The vendored core is re-pinned to the signed receipt-verifier v1.0.1 (byte-identical to v1.0.0; the provenance names the signed tag and the signer).

@@ -3,7 +3,7 @@
   "producer": {
     "name": "coderifts-app",
     "repo": "https://github.com/coderifts/app",
-    "commit": "6c5e1f08de04f53f15dadc8ef95c144db83aac12",
+    "commit": "e7b237a65e11e55783e6b4967054784d47250da0",
     "generator": [
       "scripts/generate-grant-request-types.js",
       "src/agent-host-rule.js getCanonicalRuleText()",
@@ -23,8 +23,8 @@
     {
       "path": "execution-grant-request.v2.ts",
       "role": "generated-grant-request-type",
-      "sha256": "3b1d72e6810c645858cca26b837b546ea9634b23c9b042127b879cd362c79f75",
-      "bytes": 4817,
+      "sha256": "c12d89e794bef0dc5c7e6d6469bc9322aa97f3c6f66b2d6c51261c183e4476dc",
+      "bytes": 4424,
       "app_path": "scripts/generate-grant-request-types.js --out"
     },
     {
