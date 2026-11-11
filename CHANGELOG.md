@@ -1,5 +1,9 @@
 # Changelog
 
+## 3.14.5
+
+The generated decision-result.v1 types' fingerprint comment follows the app schema (oasdiff 1.36.0, in place of 1.33.0). The type shipped in dist is unchanged in structure. npm test: 172 tests, 172 pass, 0 fail.
+
 ## 3.14.4
 
 The generated types follow the current app schemas: decision-result v1 carries the requester block and the approval block; preflight-response v2 carries semver_violations and the keyed decision-lookup wording; the decision-result wording follows oasdiff 1.33.0; execution-grant-request v2 is regenerated from the same schemas. The package description is the canonical sentence, with the keywords api-contract-preflight, offline-verifiable-authorization and agent-authorization. No runtime change: the vendored receipt-verifier core is still the signed v1.0.3. The recorded app-sync snapshot is re-recorded with scripts/record-app-sync.js at coderifts-app e7b237a6 (the grant-request type), and the vendored-core parity test compares against the tag the pin names instead of the sibling's working tree. npm test: 172 tests, 172 pass, 0 fail.
