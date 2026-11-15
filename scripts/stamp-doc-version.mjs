@@ -9,7 +9,9 @@
  * person who remembered. The python SDK's `__version__` had the same defect in the same release
  * and was fixed the same way: derive it, do not restate it.
  *
- * This runs in `prepack`, so the bytes that ship are stamped whether or not anybody remembered.
+ * `npm version` runs the `version` script after the package.json bump and before its release
+ * commit, so the README stamp is part of that commit. `prepack` runs the same stamp again so the
+ * bytes that ship are stamped whether or not anybody remembered.
  * `check:packed` then reads the stamped line back OUT OF THE TARBALL — because a build step that
  * silently no-ops looks exactly like a build step that ran.
  */

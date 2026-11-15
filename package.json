@@ -34,6 +34,7 @@
     "prepublishOnly": "npm run build && npm test",
     "check:packed": "node scripts/check-packed-install.js",
     "build:vendor": "node scripts/copy-vendor.mjs",
+    "version": "node scripts/stamp-doc-version.mjs",
     "prepack": "node scripts/stamp-doc-version.mjs"
   },
   "keywords": [
